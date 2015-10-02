@@ -1,0 +1,13 @@
+{
+	"env": {
+		"browser": true,
+		"node": true,
+		"amd": true
+	},
+	"globals": {
+	},
+	"rules": {
+		"quotes": [ 2, "single" ],
+		"no-unused-vars": 2
+	}
+}

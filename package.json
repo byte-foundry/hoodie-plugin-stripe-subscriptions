@@ -1,0 +1,29 @@
+{
+  "name": "hoodie-plugin-stripe-taxamo",
+  "version": "1.0.0",
+  "description": "Hoodie signup with stripe",
+  "main": "worker.js",
+  "scripts": {
+    "//lint": "for some reason these patterns don't match anything, so `lint` is useless",
+    "lint": "eslint **/*.js && jscs **/*.js",
+    "test": "mocha test/*.js test/**.js --colors",
+    "ping": "API_URL='/_api/_plugins/stripe/_api' && curl $HOODIE_URL$API_URL -H 'Content-Type: application/json' -H 'Pragma: no-cache' -H 'Cache-Control: no-cache' --data '{\"method\":\"ping\"}'"
+  },
+  "dependencies": {
+    "bluebird": "^2.10.0",
+    "boom": "^2.9.0",
+    "couchr": "^0.0.16",
+    "hoodie": "^2.1.1",
+    "node-fetch": "^1.3.2",
+    "stripe": "^3.9.0",
+    "vatrates": "^1.2.0"
+  },
+  "devDependencies": {
+    "chai": "^3.3.0",
+    "eslint": "^1.5.0",
+    "jscs": "^2.1.1",
+    "mocha": "^2.3.3",
+    "jquery-ajax": "^2.1.4",
+    "xmlhttprequest": "^1.7.0"
+  }
+}
