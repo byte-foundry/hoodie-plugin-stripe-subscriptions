@@ -59,7 +59,7 @@ describe('customerRequest', function() {
 			});
 	});
 
-	describe('create and update strip subscription', function() {
+	describe('create and update stripe subscription', function() {
 		before(function(done) {
 			randomSignup()
 				// we need to wait a bit before the user is confirmed
@@ -112,12 +112,23 @@ describe('customerRequest', function() {
 				this.timeout(5000);
 
 				hoodie.stripe.customers.updateSubscription({
-					plan: 'b2c_yearly_launch',
-				})
-				.then(function(body) {
-					expect(body.plan).to.equal('b2c_yearly_launch');
-					done();
-				});
+						plan: 'b2c_yearly_launch',
+					})
+					.then(function(body) {
+						expect(body.plan).to.equal('b2c_yearly_launch');
+						done();
+					});
+			}
+		);
+
+		it('stores information about the plan the user is subscribed to',
+			function(done) {
+				hoodie.request('get', '/_session')
+					.then(function(body) {
+						expect(body.userCtx.roles)
+							.include('stripe:plan:b2c_yearly_launch');
+						done();
+					});
 			}
 		);
 	});
