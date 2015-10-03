@@ -3,6 +3,7 @@ var customerRequest = require('../hooks/handlers/customerRequest');
 var hoodie = require('./setup-hoodie')();
 var fetch = require('node-fetch');
 var Promise = require('bluebird');
+var Stripe = require('stripe');
 // var util = require('util');
 
 function randomSignup() {
@@ -60,6 +61,9 @@ describe('customerRequest', function() {
 	});
 
 	describe('create and update stripe subscription', function() {
+		var stripe;
+		var token;
+
 		before(function(done) {
 			randomSignup()
 				// we need to wait a bit before the user is confirmed
@@ -82,19 +86,33 @@ describe('customerRequest', function() {
 				});
 			});
 
+		before(function(done) {
+			if ( !process.env.STRIPE_KEY ) {
+				throw new Error('STRIPE_KEY env variable required');
+			}
+
+			stripe = Stripe(process.env.STRIPE_KEY);
+
+			stripe.tokens.create({
+				card: {
+					'number': '4242424242424242',
+					'exp_month': '12',
+					'exp_year': '2017',
+					'cvc': '272',
+					'name': 'ME MYSLEF AND I',
+				},
+			}, function(err, _token) {
+				token = _token;
+				done();
+			});
+		});
+
 		it('can create a customer and subscribe to the free plan',
 			function(done) {
 				this.timeout(5000);
 
 				hoodie.stripe.customers.create({
-					source: {
-						'object': 'card',
-						'number': '4242424242424242',
-						'exp_month': '12',
-						'exp_year': '2017',
-						'cvc': '272',
-						'name': 'ME MYSLEF AND I',
-					},
+					source: token.id,
 					taxNumber: undefined,
 					cardPrefix: '424242424',
 					currencyCode: 'USD',
