@@ -2,12 +2,17 @@
 	"env": {
 		"browser": true,
 		"node": true,
-		"amd": true
+		"amd": true,
+		"mocha": true
 	},
-	"globals": {
+	"plugins": [
+      "mocha"
+    ],
+    "globals": {
 	},
 	"rules": {
 		"quotes": [ 2, "single" ],
-		"no-unused-vars": 2
+		"no-unused-vars": 2,
+		"mocha/no-exclusive-tests": 2
 	}
 }

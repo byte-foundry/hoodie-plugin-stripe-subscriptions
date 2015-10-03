@@ -4,8 +4,7 @@
   "description": "Hoodie signup with stripe",
   "main": "worker.js",
   "scripts": {
-    "//lint": "for some reason these patterns don't match anything, so `lint` is useless",
-    "lint": "eslint **/*.js && jscs **/*.js",
+    "lint": "eslint hooks/*.js hooks/**/*.js lib/*.js test/*.js && jscs hooks/*.js hooks/**/*.js lib/*.js test/*.js",
     "test": "mocha test/*.js test/**.js --colors",
     "ping": "API_URL='/_api/_plugins/stripe/_api' && curl $HOODIE_URL$API_URL -H 'Content-Type: application/json' -H 'Pragma: no-cache' -H 'Cache-Control: no-cache' --data '{\"method\":\"ping\"}'"
   },
@@ -21,9 +20,10 @@
   "devDependencies": {
     "chai": "^3.3.0",
     "eslint": "^1.5.0",
+    "eslint-plugin-mocha": "^1.0.0",
+    "jquery-ajax": "^2.1.4",
     "jscs": "^2.1.1",
     "mocha": "^2.3.3",
-    "jquery-ajax": "^2.1.4",
     "xmlhttprequest": "^1.7.0"
   }
 }
