@@ -2,6 +2,7 @@
   "name": "hoodie-plugin-stripe-taxamo",
   "version": "1.0.0",
   "description": "Hoodie signup with stripe",
+  "keywords": ["hoodie", "plugin", "stripe", "taxamo"],
   "main": "worker.js",
   "scripts": {
     "lint": "eslint hooks/*.js hooks/**/*.js lib/*.js test/*.js worker.js && jscs hooks/*.js hooks/**/*.js lib/*.js test/*.js worker.js",
