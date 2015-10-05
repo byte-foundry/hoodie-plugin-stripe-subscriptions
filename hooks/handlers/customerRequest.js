@@ -18,17 +18,16 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 		return reply( Boom.expectationFailed( 'Taxamo key not configured') );
 	}
 
-	fetch('http://' + request.info.host + '/_api/_session', {
-			method: 'get',
-			headers: {
-				'authorization': request.headers.authorization,
-				'accept': 'application/json',
-			},
-			cookie: request.headers.cookie,
+	var promises = [ requestSession( request ) ];
+
+	if ( !global.allStripePlans ) {
+		promises.push( utils.fetchAllStripePlans( stripe ) );
+	}
+
+	Promise.all(promises)
+		.then(function() {
+			return arguments[0];
 		})
-		.then(utils.checkStatus)
-		.then(utils.parseJson)
-		.then(checkSession)
 		.then(function(userName) {
 			return getUserDoc( hoodie, userName );
 		})
@@ -91,6 +90,20 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 			console.log(error);
 			return reply( error );
 		});
+}
+
+function requestSession( request ) {
+	return fetch('http://' + request.info.host + '/_api/_session', {
+			method: 'get',
+			headers: {
+				'authorization': request.headers.authorization,
+				'accept': 'application/json',
+			},
+			cookie: request.headers.cookie,
+		})
+		.then(utils.checkStatus)
+		.then(utils.parseJson)
+		.then(checkSession);
 }
 
 function checkSession( response ) {
