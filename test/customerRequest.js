@@ -4,7 +4,6 @@ var hoodie = require('./setup-hoodie')();
 var fetch = require('node-fetch');
 var Promise = require('bluebird');
 var Stripe = require('stripe');
-// var util = require('util');
 
 function randomSignup() {
 	var username = 'u' + Math.round( Math.random() * 1E9 );
@@ -83,6 +82,9 @@ describe('customerRequest', function() {
 				})
 				.then(function() {
 					done();
+				})
+				.catch(function( error ) {
+					console.log(error);
 				});
 			});
 
@@ -104,6 +106,9 @@ describe('customerRequest', function() {
 			}, function(err, _token) {
 				token = _token;
 				done();
+			})
+			.catch(function( error ) {
+				console.log(error);
 			});
 		});
 
@@ -116,11 +121,14 @@ describe('customerRequest', function() {
 					taxNumber: undefined,
 					cardPrefix: '424242424',
 					currencyCode: 'USD',
-					plan: 'b2c_monthly_launch',
+					plan: 'hoodie_test1_USD_taxfree',
 				})
 				.then(function(body) {
-					expect(body.plan).to.equal('b2c_monthly_launch');
+					expect(body.plan).to.equal('hoodie_test1_USD_taxfree');
 					done();
+				})
+				.catch(function( error ) {
+					console.log(error);
 				});
 			}
 		);
@@ -130,11 +138,14 @@ describe('customerRequest', function() {
 				this.timeout(5000);
 
 				hoodie.stripe.customers.updateSubscription({
-						plan: 'b2c_yearly_launch',
+						plan: 'hoodie_test2_USD_taxfree',
 					})
 					.then(function(body) {
-						expect(body.plan).to.equal('b2c_yearly_launch');
+						expect(body.plan).to.equal('hoodie_test2_USD_taxfree');
 						done();
+					})
+					.catch(function( error ) {
+						console.log(error);
 					});
 			}
 		);
@@ -144,8 +155,11 @@ describe('customerRequest', function() {
 				hoodie.request('get', '/_session')
 					.then(function(body) {
 						expect(body.userCtx.roles)
-							.include('stripe:plan:b2c_yearly_launch');
+							.include('stripe:plan:hoodie_test2_USD_taxfree');
 						done();
+					})
+					.catch(function( error ) {
+						console.log(error);
 					});
 			}
 		);

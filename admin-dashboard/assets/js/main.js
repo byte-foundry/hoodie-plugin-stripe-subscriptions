@@ -64,8 +64,8 @@ $(function() {
 		ev.preventDefault();
 		setSubmitButtonToSaving(this);
 		var cfg = {
-			stripeKey: $('[name=stripeKey]').val(),
-			taxamoKey: $('[name=taxamoKey]').val(),
+			stripeKey: $.trim( $('[name=stripeKey]').val() ),
+			taxamoKey: $.trim( $('[name=taxamoKey]').val() ),
 		};
 		updateConfig(cfg, function(err) {
 			if (err) {

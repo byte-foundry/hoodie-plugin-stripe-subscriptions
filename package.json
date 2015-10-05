@@ -4,7 +4,7 @@
   "description": "Hoodie signup with stripe",
   "main": "worker.js",
   "scripts": {
-    "lint": "eslint hooks/*.js hooks/**/*.js lib/*.js test/*.js && jscs hooks/*.js hooks/**/*.js lib/*.js test/*.js",
+    "lint": "eslint hooks/*.js hooks/**/*.js lib/*.js test/*.js worker.js && jscs hooks/*.js hooks/**/*.js lib/*.js test/*.js worker.js",
     "test": "mocha test/*.js test/**.js --colors",
     "ping": "API_URL='/_api/_plugins/stripe/_api' && curl $HOODIE_URL$API_URL -H 'Content-Type: application/json' -H 'Pragma: no-cache' -H 'Cache-Control: no-cache' --data '{\"method\":\"ping\"}'"
   },
