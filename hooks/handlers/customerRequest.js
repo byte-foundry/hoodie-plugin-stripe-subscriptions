@@ -24,7 +24,7 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 		return reply( Boom.badRequest( 'plan property is mandatory') );
 	}
 
-	var promises = [ requestSession( request ) ];
+	var promises = [ requestSession( request, logger ) ];
 
 	if ( !global.allStripePlans ) {
 		promises.push( utils.fetchAllStripePlans( stripe ) );
@@ -102,13 +102,12 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 		});
 }
 
-function requestSession( request ) {
+function requestSession( request, logger ) {
 	var sessionUri =
 		'https://' +
-		request.info.host +
+		request.info.remoteAddress + ':' + request.info.remotePort +
 		'/_api/_session';
-console.log('request.info.remoteAddress', request.info.remoteAddress);
-console.log('request.raw.req.connection.remoteAddress', request.raw.req.connection.remoteAddress);
+	logger.log(sessionUri);
 	return fetch(sessionUri, {
 			method: 'get',
 			headers: {
