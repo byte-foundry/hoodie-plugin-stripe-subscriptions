@@ -30,19 +30,16 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 		promises.push( utils.fetchAllStripePlans( stripe ) );
 	}
 
-	logger.log(request.payload.args);
-	return reply( null, { 'here':'there' } );
-
 	Promise.all(promises)
-		.then(function() {
+		.then(function() {console.log('A');
 			return arguments[0];
 		})
-		.then(function(userName) {
+		.then(function(userName) {console.log('B');
 			return getUserDoc(
 				stripe, hoodie, userName, request, logger );
 		})
 		// verify stripeToken and extract country code
-		.then(function(nextDoc) {
+		.then(function(nextDoc) {console.log('C');
 			if ( request.payload.method === 'customers.create' &&
 					( request.payload.args[0] || {} ).source ) {
 				return stripeRetrieveToken(
@@ -52,7 +49,7 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 			return nextDoc;
 		})
 		// create palceholder taxamo transaction
-		.then(function(nextDoc) {
+		.then(function(nextDoc) {console.log('D');
 			if ( request.payload.method === 'customers.create' &&
 					( request.payload.args[0] || {} ).source ) {
 				return taxamoTransactionCreate(
@@ -62,11 +59,11 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 			return nextDoc;
 		})
 		// build plan Id that matches VAT amount
-		.then(function(nextDoc) {
+		.then(function(nextDoc) {console.log('E');
 			return buildLocalPlanId(
 				stripe, hoodie, nextDoc, request, logger );
 		})
-		.then(function(nextDoc) {
+		.then(function(nextDoc) {console.log('F');
 			if ( !(nextDoc.localPlanId in global.allStripePlans ) ) {
 				return stripePlanCreate(
 					stripe, hoodie, nextDoc, request, logger );
@@ -75,7 +72,7 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 			return nextDoc;
 		})
 		// create stripe customer with reference to placeholder transaction
-		.then(function(nextDoc) {
+		.then(function(nextDoc) {console.log('G');
 			if ( request.payload.method === 'customers.create' ) {
 				return stripeCustomerCreate(
 					stripe, hoodie, nextDoc, request, logger );
@@ -84,7 +81,7 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 			return nextDoc;
 		})
 		// create or update subscription
-		.then(function( nextDoc ) {
+		.then(function( nextDoc ) {console.log('H');
 			if ( request.payload.method === 'customers.update' ) {
 				return stripeSubscriptionUpdate(
 					stripe, hoodie, nextDoc, request, logger );
@@ -92,13 +89,13 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 
 			return nextDoc;
 		})
-		.then(function( nextDoc ) {
+		.then(function( nextDoc ) {console.log('I');
 			return updateAccount( stripe, hoodie, nextDoc, request, logger );
 		})
-		.then(function(nextDoc) {
+		.then(function(nextDoc) {console.log('J');
 			return reply( null, { plan: nextDoc.stripe.plan });
 		})
-		.catch(function( error ) {
+		.catch(function( error ) {console.log('K');
 			logger.error(error, error.stack);
 			return reply( error );
 		});
