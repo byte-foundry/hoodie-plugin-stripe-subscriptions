@@ -180,7 +180,7 @@ function taxamoTransactionCreate( stripe, hoodie, userDoc, request, logger ) {
 	var customer = userDoc.stripe;
 	var requestData = request.payload.args[0];
 
-	var payload = {
+	var transaction = {
 		transaction: {
 			'transaction_lines': [
 				{
@@ -198,11 +198,13 @@ function taxamoTransactionCreate( stripe, hoodie, userDoc, request, logger ) {
 	};
 
 	if (request.info.remoteAddress !== '127.0.0.1') {
-		payload['buyer_ip'] = request.info.remoteAddress;
+		transaction['buyer_ip'] = request.info.remoteAddress;
 	}
 	if (requestData.taxNumber) {
-		payload['buyer_tax_number'] = requestData.taxNumber;
+		transaction['buyer_tax_number'] = requestData.taxNumber;
 	}
+
+	logger.log( transaction );
 
 	return fetch('https://api.taxamo.com/api/v1/transactions', {
 		method: 'post',
@@ -211,7 +213,7 @@ function taxamoTransactionCreate( stripe, hoodie, userDoc, request, logger ) {
 			'Accept': 'application/json',
 			'Private-Token': hoodie.config.get('taxamoKey'),
 		},
-		body: JSON.stringify(payload),
+		body: JSON.stringify(transaction),
 	})
 	.then(utils.checkStatus)
 	.then(utils.parseJson)
