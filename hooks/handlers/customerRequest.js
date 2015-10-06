@@ -31,15 +31,15 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 	}
 
 	Promise.all(promises)
-		.then(function() {console.log('A');
+		.then(function() {
 			return arguments[0];
 		})
-		.then(function(userName) {console.log('B');
+		.then(function(userName) {
 			return getUserDoc(
 				stripe, hoodie, userName, request, logger );
 		})
 		// verify stripeToken and extract country code
-		.then(function(nextDoc) {console.log('C');
+		.then(function(nextDoc) {
 			if ( request.payload.method === 'customers.create' &&
 					( request.payload.args[0] || {} ).source ) {
 				return stripeRetrieveToken(
@@ -49,7 +49,7 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 			return nextDoc;
 		})
 		// create palceholder taxamo transaction
-		.then(function(nextDoc) {console.log('D');
+		.then(function(nextDoc) {
 			if ( request.payload.method === 'customers.create' &&
 					( request.payload.args[0] || {} ).source ) {
 				return taxamoTransactionCreate(
@@ -59,11 +59,11 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 			return nextDoc;
 		})
 		// build plan Id that matches VAT amount
-		.then(function(nextDoc) {console.log('E');
+		.then(function(nextDoc) {
 			return buildLocalPlanId(
 				stripe, hoodie, nextDoc, request, logger );
 		})
-		.then(function(nextDoc) {console.log('F');
+		.then(function(nextDoc) {
 			if ( !(nextDoc.localPlanId in global.allStripePlans ) ) {
 				return stripePlanCreate(
 					stripe, hoodie, nextDoc, request, logger );
@@ -72,7 +72,7 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 			return nextDoc;
 		})
 		// create stripe customer with reference to placeholder transaction
-		.then(function(nextDoc) {console.log('G');
+		.then(function(nextDoc) {
 			if ( request.payload.method === 'customers.create' ) {
 				return stripeCustomerCreate(
 					stripe, hoodie, nextDoc, request, logger );
@@ -81,7 +81,7 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 			return nextDoc;
 		})
 		// create or update subscription
-		.then(function( nextDoc ) {console.log('H');
+		.then(function( nextDoc ) {
 			if ( request.payload.method === 'customers.update' ) {
 				return stripeSubscriptionUpdate(
 					stripe, hoodie, nextDoc, request, logger );
@@ -89,22 +89,21 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 
 			return nextDoc;
 		})
-		.then(function( nextDoc ) {console.log('I');
+		.then(function( nextDoc ) {
 			return updateAccount( stripe, hoodie, nextDoc, request, logger );
 		})
-		.then(function(nextDoc) {console.log('J');
+		.then(function(nextDoc) {
 			return reply( null, { plan: nextDoc.stripe.plan });
 		})
-			.catch(function( error ) {console.log('K');
-			console.log(error, error.stack);
-			logger.error(error, error.stack);
+		.catch(function( error ) {
+			logger.error(error);
 			return reply( error );
 		});
 }
 
 function requestSession( request, logger ) {
 	var sessionUri =
-		'https://' +
+		'http://' +
 		'prototypo-dev.appback.com' +
 		'/_api/_session';
 	logger.log(sessionUri);
