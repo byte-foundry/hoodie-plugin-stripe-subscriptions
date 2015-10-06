@@ -104,7 +104,7 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 
 function requestSession( request, logger ) {
 	var sessionUri =
-		'https://' +
+		'http://' +
 		request.info.remoteAddress + ':' + request.info.remotePort +
 		'/_api/_session';
 	logger.log(sessionUri);
