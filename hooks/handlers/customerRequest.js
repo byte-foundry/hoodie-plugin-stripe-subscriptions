@@ -110,7 +110,8 @@ function requestSession( request ) {
 		) +
 		request.info.host +
 		'/_api/_session';
-console.log('remoteAddress', request.info.remoteAddress);
+console.log('request.info.remoteAddress', request.info.remoteAddress);
+console.log('request.raw.req.connection.remoteAddress', request.raw.req.connection.remoteAddress);
 	return fetch('https://prototypo-dev.appback.com/_api/_session', {
 			method: 'get',
 			headers: {

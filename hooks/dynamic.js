@@ -27,7 +27,7 @@ var chromelogger = require('chromelogger');
 
 var chrome;
 
-module.exports = function( hoodie ) {
+module.exports = function( hoodie, options ) {
 	return {
 		/*
 			group: server.api.*
