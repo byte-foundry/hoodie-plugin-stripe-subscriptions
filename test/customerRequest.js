@@ -4,9 +4,21 @@ if ( typeof require !== 'undefined' ) {
 	var hoodie = require('./setup-hoodie')();
 	var fetch = require('node-fetch');
 	var Promise = require('bluebird');
-	var utils = require('../lib/utils');
+	var Stripe = require('stripe');
 
 	var HOODIE_URL = process.env.HOODIE_URL;
+
+	var stripeTokensCreate = function( card, callback ) {
+		if ( !process.env.STRIPE_KEY ) {
+			throw new Error('STRIPE_KEY env variable required');
+		}
+
+		stripe = Stripe(process.env.STRIPE_KEY);
+
+		stripe.tokens.create({
+			card: card,
+		}, callback );
+	};
 }
 
 function randomSignup() {
@@ -94,7 +106,7 @@ describe('customerRequest', function() {
 			});
 
 		before(function(done) {
-			utils.stripeTokensCreate({
+			stripeTokensCreate({
 				'number': '4242424242424242',
 				'exp_month': '12',
 				'exp_year': '2017',

@@ -37,13 +37,11 @@
 		var hoodie = new Hoodie(HOODIE_URL);
 		Stripe.setPublishableKey('pk_test_PkwKlOWOqSoimNJo2vsT21sE');
 
-		var utils = {
-			stripeTokensCreate: function( card, callback ) {
+		var stripeTokensCreate = function( card, callback ) {
 				Stripe.card.createToken( card, function(status, response) {
 					callback( response.error, response );
 				});
-			},
-		};
+			};
 
 		window._fetch = window.fetch;
 	</script>
