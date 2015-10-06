@@ -104,8 +104,8 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 
 function requestSession( request, logger ) {
 	var sessionUri =
-		'http://' +
-		request.info.remoteAddress + ':' + request.info.remotePort +
+		'https://' +
+		'prototypo-dev.appback.com' +
 		'/_api/_session';
 	logger.log(sessionUri);
 	return fetch(sessionUri, {
