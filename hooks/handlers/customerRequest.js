@@ -104,11 +104,13 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 
 function requestSession( request ) {
 	var sessionUri =
-		request.server.info.protocol +
-		'://' +
+		( request.info.remoteAddress === '127.0.0.1' ?
+			'http://' :
+			'https://'
+		) +
 		request.info.host +
 		'/_api/_session';
-
+console.log('remoteAddress', request.info.remoteAddress);
 	return fetch( sessionUri, {
 			method: 'get',
 			headers: {
@@ -162,7 +164,7 @@ function stripeRetrieveToken( stripe, hoodie, userDoc, request, logger ) {
 
 			userDoc.stripe.tokenId = token.id;
 			userDoc.stripe.country = token.card.country;
-
+console.log('client_ip', token.client_ip);
 			logger.log( userDoc );
 			return resolve( userDoc );
 		});
