@@ -95,14 +95,21 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 		.then(function(nextDoc) {console.log('J');
 			return reply( null, { plan: nextDoc.stripe.plan });
 		})
-		.catch(function( error ) {console.log('K');
+			.catch(function( error ) {console.log('K');
+			console.log(error, error.stack);
 			logger.error(error, error.stack);
 			return reply( error );
 		});
 }
 
 function requestSession( request ) {
-	return fetch('http://' + request.info.host + '/_api/_session', {
+	var sessionUri =
+		request.server.info.protocol +
+		'://' +
+		request.info.host +
+		'/_api/_session';
+
+	return fetch( sessionUri, {
 			method: 'get',
 			headers: {
 				'authorization': request.headers.authorization,
