@@ -24,7 +24,7 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 		return reply( Boom.badRequest( 'plan property is mandatory') );
 	}
 
-	var promises = [ requestSession( request, logger ) ];
+	var promises = [ requestSession( stripe, hoodie, null, request, logger ) ];
 
 	if ( !global.allStripePlans ) {
 		promises.push( utils.fetchAllStripePlans( stripe ) );
@@ -101,12 +101,18 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 		});
 }
 
-function requestSession( request, logger ) {
-	var sessionUri =
-		'http://' +
-		'prototypo-dev.appback.com' +
-		'/_api/_session';
+function requestSession( stripe, hoodie, nextDoc, request, logger ) {
+	var sessionUri = hoodie.config.get('sessionUri');
+	if ( !sessionUri ) {
+		sessionUri =
+			request.server.info.protocol +
+			'://' +
+			request.info.host +
+			'/_api/_session';
+	}
+
 	logger.log(sessionUri);
+
 	return fetch(sessionUri, {
 			method: 'get',
 			headers: {
@@ -162,7 +168,7 @@ function stripeRetrieveToken( stripe, hoodie, userDoc, request, logger ) {
 
 			userDoc.stripe.tokenId = token.id;
 			userDoc.stripe.country = token.card.country;
-console.log('client_ip', token.client_ip);
+
 			logger.log( userDoc );
 			return resolve( userDoc );
 		});

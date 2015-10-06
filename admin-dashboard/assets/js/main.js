@@ -32,6 +32,7 @@ $(function() {
 		}
 		$('[name=stripeKey]').val(doc.config.stripeKey);
 		$('[name=taxamoKey]').val(doc.config.taxamoKey);
+		$('[name=sessionUri]').val(doc.config.sessionUri);
 		$('[name=stripeDebug]').prop('checked', doc.config.stripeDebug);
 	});
 
@@ -67,6 +68,7 @@ $(function() {
 		var cfg = {
 			stripeKey: $.trim( $('[name=stripeKey]').val() ),
 			taxamoKey: $.trim( $('[name=taxamoKey]').val() ),
+			sessionUri: $.trim( $('[name=sessionUri]').val() ),
 			stripeDebug: $('[name=stripeDebug]').prop('checked'),
 		};
 		updateConfig(cfg, function(err) {
