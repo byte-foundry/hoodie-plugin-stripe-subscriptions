@@ -104,15 +104,12 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 
 function requestSession( request ) {
 	var sessionUri =
-		( request.info.remoteAddress === '127.0.0.1' ?
-			'http://' :
-			'https://'
-		) +
+		'https://' +
 		request.info.host +
 		'/_api/_session';
 console.log('request.info.remoteAddress', request.info.remoteAddress);
 console.log('request.raw.req.connection.remoteAddress', request.raw.req.connection.remoteAddress);
-	return fetch('https://prototypo-dev.appback.com/_api/_session', {
+	return fetch(sessionUri, {
 			method: 'get',
 			headers: {
 				'authorization': request.headers.authorization,
