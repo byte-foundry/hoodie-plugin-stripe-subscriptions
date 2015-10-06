@@ -116,6 +116,8 @@ console.log('request.raw.req.connection.remoteAddress', request.raw.req.connecti
 				'accept': 'application/json',
 			},
 			cookie: request.headers.cookie,
+			// session shouldn't take longer than that
+			timeout: 1000,
 		})
 		.then(utils.checkStatus)
 		.then(utils.parseJson)
