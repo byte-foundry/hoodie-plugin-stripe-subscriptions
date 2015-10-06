@@ -30,6 +30,9 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 		promises.push( utils.fetchAllStripePlans( stripe ) );
 	}
 
+	logger.log(request.payload.args);
+	return reply( null, { 'here':'there' } );
+
 	Promise.all(promises)
 		.then(function() {
 			return arguments[0];
