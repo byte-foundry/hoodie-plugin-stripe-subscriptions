@@ -1,5 +1,7 @@
-var expect = require('chai').expect;
-var hoodie = require('./setup-hoodie')();
+if ( typeof require !== 'undefined' ) {
+	var expect = require('chai').expect;
+	var hoodie = require('./setup-hoodie')();
+}
 
 describe('pingRequest', function() {
 	it('should be able to ping the plugin api', function(done) {

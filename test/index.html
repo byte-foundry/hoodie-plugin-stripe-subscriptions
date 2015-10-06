@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Hoodie-plugin-stripe-taxamo tests</title>
+	<link rel="stylesheet" media="all" href="vendor/mocha.css">
+</head>
+<body>
+	<div id="mocha"><p><a href=".">Index</a></p></div>
+	<div id="messages"></div>
+	<div id="fixtures"></div>
+	<script src="vendor/mocha.js"></script>
+	<script src="vendor/chai.js"></script>
+	<script>mocha.setup('bdd')</script>
+
+	<script src="vendor/jquery.js"></script>
+	<script src="vendor/fetch.js"></script>
+	<script src="vendor/hoodie.js"></script>
+	<script src="../hoodie.stripe.js"></script>
+	<script src="vendor/URI.js"></script>
+	<script src="https://js.stripe.com/v2/"></script>
+	<script>
+		var query = URI.parseQuery( window.location.search )
+		var HOODIE_URL = query.hoodie_url.toString();
+		var STRIPE_KEY = query.stripe_key.toString();
+
+		if ( !HOODIE_URL || !STRIPE_KEY ) {
+			throw new Error('hoodie_url and stripe_key must be set as url search parameters');
+		}
+
+		var expect = chai.expect;
+		var customerRequest = function( a, b, c ) {
+			var error = new Error();
+
+			c( error );
+		};
+		var hoodie = new Hoodie(HOODIE_URL);
+		Stripe.setPublishableKey('pk_test_PkwKlOWOqSoimNJo2vsT21sE');
+
+		var utils = {
+			stripeTokensCreate: function( card, callback ) {
+				Stripe.card.createToken( card, function(status, response) {
+					callback( response.error, response );
+				});
+			},
+		};
+
+		window._fetch = window.fetch;
+	</script>
+	<script src="pingRequest.js"></script>
+	<script src="customerRequest.js"></script>
+	<script>mocha.run();</script>
+</body>
+</html>

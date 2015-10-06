@@ -1,9 +1,13 @@
-var expect = require('chai').expect;
-var customerRequest = require('../hooks/handlers/customerRequest');
-var hoodie = require('./setup-hoodie')();
-var fetch = require('node-fetch');
-var Promise = require('bluebird');
-var Stripe = require('stripe');
+if ( typeof require !== 'undefined' ) {
+	var expect = require('chai').expect;
+	var customerRequest = require('../hooks/handlers/customerRequest');
+	var hoodie = require('./setup-hoodie')();
+	var fetch = require('node-fetch');
+	var Promise = require('bluebird');
+	var utils = require('../lib/utils');
+
+	var HOODIE_URL = process.env.HOODIE_URL;
+}
 
 function randomSignup() {
 	var username = 'u' + Math.round( Math.random() * 1E9 );
@@ -11,8 +15,8 @@ function randomSignup() {
 	var hoodieId = Math.random().toString().substr(2);
 	var userUrl = 'org.couchdb.user:user/' + username;
 
-	return fetch(
-		process.env.HOODIE_URL + '/_api/_users/' + encodeURIComponent(userUrl),
+	return (fetch || _fetch)(
+		HOODIE_URL + '/_api/_users/' + encodeURIComponent(userUrl),
 		{
 			method: 'put',
 			headers: {
@@ -44,23 +48,26 @@ function randomSignup() {
 describe('customerRequest', function() {
 	it('should reply an error when no Stripe key is configured', function() {
 		var reply;
-		customerRequest({ config: { get: function() {} } }, {}, function(r) {
-			reply = r;
-		});
+		customerRequest({
+				config: { get: function() {} },
+			}, {
+				raw: { res: {} },
+			}, function(r) {
+				reply = r;
+			});
 
 		expect(reply).to.be.an.instanceOf(Error);
 	});
 
-	it('should reply an error when user isn\'t authenticated', function(done) {
+	it('should reply an error when plan isn\'t specified', function(done) {
 		hoodie.stripe.customers.create()
 			.catch(function(error) {
-				expect(error.statusCode).to.equal(401);
+				expect(error.statusCode).to.equal(400);
 				done();
 			});
 	});
 
 	describe('create and update stripe subscription', function() {
-		var stripe;
 		var token;
 
 		before(function(done) {
@@ -68,13 +75,11 @@ describe('customerRequest', function() {
 				// we need to wait a bit before the user is confirmed
 				// automatically by Hoodie
 				.then(function(_credentials) {
-					var deferred = Promise.pending();
-
-					global.setTimeout(function() {
-						deferred.resolve(_credentials);
-					}, 300);
-
-					return deferred.promise;
+					return new Promise(function(resolve) {
+						setTimeout(function() {
+							resolve(_credentials);
+						}, 300);
+					});
 				})
 				.then(function(_credentials) {
 					return hoodie.account
@@ -89,26 +94,15 @@ describe('customerRequest', function() {
 			});
 
 		before(function(done) {
-			if ( !process.env.STRIPE_KEY ) {
-				throw new Error('STRIPE_KEY env variable required');
-			}
-
-			stripe = Stripe(process.env.STRIPE_KEY);
-
-			stripe.tokens.create({
-				card: {
-					'number': '4242424242424242',
-					'exp_month': '12',
-					'exp_year': '2017',
-					'cvc': '272',
-					'name': 'ME MYSLEF AND I',
-				},
+			utils.stripeTokensCreate({
+				'number': '4242424242424242',
+				'exp_month': '12',
+				'exp_year': '2017',
+				'cvc': '272',
+				'name': 'ME MYSLEF AND I',
 			}, function(err, _token) {
 				token = _token;
 				done();
-			})
-			.catch(function( error ) {
-				console.log(error);
 			});
 		});
 

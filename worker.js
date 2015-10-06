@@ -1,6 +1,4 @@
 var Promise = require('bluebird');
-var Stripe = require('stripe');
-var utils = require('./lib/utils');
 
 module.exports = function hoodiePluginStripeTaxamo(hoodie, callback) {
 	var promises = [
@@ -8,12 +6,11 @@ module.exports = function hoodiePluginStripeTaxamo(hoodie, callback) {
 			createUserIndex(hoodie),
 		];
 
-	// only fetch stripe plans if stripeKey is already configured
-	var stripeKey = hoodie.config.get('stripeKey');
-	if ( stripeKey ) {
-		var stripe = Stripe(stripeKey)
-		promises.push(utils.fetchAllStripePlans(stripe))
-	}
+	// We used to try to fetchAllStripePlans here before,
+	// but sometimes the API can't be fetched and in this cases this causes
+	// hard to debug troubles in hoodie and appback.
+	// Generally it is safer not to try to reach outside world while starting
+	// the plugin
 
 	Promise.all(promises)
 		.then(function() {

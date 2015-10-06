@@ -32,6 +32,7 @@ $(function() {
 		}
 		$('[name=stripeKey]').val(doc.config.stripeKey);
 		$('[name=taxamoKey]').val(doc.config.taxamoKey);
+		$('[name=stripeDebug]').prop('checked', doc.config.stripeDebug);
 	});
 
 	function setSubmitButtonToSaving(form) {
@@ -66,6 +67,7 @@ $(function() {
 		var cfg = {
 			stripeKey: $.trim( $('[name=stripeKey]').val() ),
 			taxamoKey: $.trim( $('[name=taxamoKey]').val() ),
+			stripeDebug: $('[name=stripeDebug]').prop('checked'),
 		};
 		updateConfig(cfg, function(err) {
 			if (err) {

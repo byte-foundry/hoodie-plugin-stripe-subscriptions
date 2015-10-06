@@ -20,10 +20,10 @@
           <input type="text" class="form-control" id="stripeKey" name="stripeKey" placeholder="sk_"/>
           <label for="taxamoKey">Taxamo Secret Key</label>
           <input type="text" class="form-control" id="taxamoKey" name="taxamoKey" placeholder="priv_"/>
-          <!--<label for="countryCode">Your country code</label>
-          <input type="text" class="form-control" id="countryCode" name="countryCode" placeholder="AB"/>
-          <label for="localVatRate">local VAT Rate in %</label>
-          <input type="number" class="form-control" id="localVatRate" name="localVatRate" placeholder="12"/>-->
+          <label for="stripeDebug">Enable remote debugging</label>
+          <div class="form-control" style="margin: 1.25em 0px 1.25em 30%; background: none; border: none;">
+              <input type="checkbox" id="stripeDebug" name="stripeDebug"/>
+          </div>
           <button class="submit btn" type="submit">Save settings</button>
         </fieldset>
       </form>

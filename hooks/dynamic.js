@@ -23,6 +23,9 @@
 var handlePingRequest = require('./handlers/pingRequest');
 var handleCustomerRequest = require('./handlers/customerRequest');
 var handleWebhooksRequest = require('./handlers/webhooksRequest');
+var chromelogger = require('chromelogger');
+
+var chrome;
 
 module.exports = function( hoodie ) {
 	return {
@@ -50,17 +53,43 @@ module.exports = function( hoodie ) {
 				cuses Hoodie to return a 500 error.
 		*/
 		'server.api.plugin-request': function routeRequests(request, reply) {
-			if ( request.payload && request.payload.method &&
-					request.payload.method === 'ping' ) {
-				handlePingRequest( hoodie, request, reply );
-			}
-			else if ( request.payload && request.payload.method &&
-					request.payload.method.indexOf('customers.') === 0 ) {
-				handleCustomerRequest( hoodie, request, reply );
-			}
-			else {
-				handleWebhooksRequest( hoodie, request, reply );
+			hoodie.config.get('stripeDebug') ?
+				chromelogger.middleware( null, request.raw.res ) :
+				request.raw.res.chrome = chrome;
+
+			try {
+
+				if ( request.payload && request.payload.method &&
+						request.payload.method === 'ping' ) {
+					handlePingRequest( hoodie, request, reply );
+				}
+				else if ( request.payload && request.payload.method &&
+						request.payload.method.indexOf('customers.') === 0 ) {
+					handleCustomerRequest( hoodie, request, reply );
+				}
+				else {
+					handleWebhooksRequest( hoodie, request, reply );
+				}
+
+			} catch (e) {
+				request.raw.res.chrome.error(e, e.stack);
+				reply();
 			}
 		},
 	};
+};
+
+chrome = {
+	log: console.log.bind(console),
+	warn: console.log.bind(console),
+	error: console.log.bind(console),
+	info: console.log.bind(console),
+	table: console.log.bind(console),
+	assert: console.log.bind(console),
+	count: console.log.bind(console),
+	time: console.log.bind(console),
+	timeEnd: console.log.bind(console),
+	group: console.log.bind(console),
+	groupEnd: console.log.bind(console),
+	groupCollapsed: console.log.bind(console),
 };
