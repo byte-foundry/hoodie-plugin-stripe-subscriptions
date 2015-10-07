@@ -123,8 +123,8 @@ function requestSession( stripe, hoodie, nextDoc, request, logger ) {
 			// session shouldn't take longer than that
 			timeout: 1000,
 		})
-		.then(utils.checkStatus)
 		.then(utils.parseJson)
+		.then(utils.checkStatus)
 		.then(checkSession);
 }
 
@@ -208,8 +208,6 @@ function taxamoTransactionCreate( stripe, hoodie, userDoc, request, logger ) {
 		transaction['buyer_tax_number'] = requestData.taxNumber;
 	}
 
-	logger.log( transaction );
-
 	return fetch('https://api.taxamo.com/api/v1/transactions', {
 		method: 'post',
 		headers: {
@@ -218,9 +216,10 @@ function taxamoTransactionCreate( stripe, hoodie, userDoc, request, logger ) {
 			'Private-Token': hoodie.config.get('taxamoKey'),
 		},
 		body: JSON.stringify(transaction),
+		timeout: 2000,
 	})
-	.then(utils.checkStatus)
 	.then(utils.parseJson)
+	.then(utils.checkStatus)
 	.then(function(body) {
 		userDoc.taxamo = {
 			id: body.transaction.key,
@@ -231,7 +230,7 @@ function taxamoTransactionCreate( stripe, hoodie, userDoc, request, logger ) {
 			taxDeducted: body.transaction['tax_deducted'],
 		};
 
-		logger.log( userDoc, body );
+		logger.log( userDoc, transaction, body );
 		return userDoc;
 	});
 }
@@ -271,7 +270,7 @@ function buildLocalPlanId( stripe, hoodie, userDoc, request, logger ) {
 			return resolve( userDoc );
 		}
 
-		// if taxRate was null, we need to
+		// if taxRate was null, we need to fetch a useful VAT rate
 		fetch('https://api.taxamo.com/api/v1/tax/calculate', {
 			method: 'post',
 			headers: {
@@ -284,9 +283,10 @@ function buildLocalPlanId( stripe, hoodie, userDoc, request, logger ) {
 				'amount': 0,
 				'force_country_code': userDoc.stripe.country,
 			}),
+			timeout: 2000,
 		})
-		.then(utils.checkStatus)
 		.then(utils.parseJson)
+		.then(utils.checkStatus)
 		.then(function(body) {
 			userDoc.taxamo.taxRate =
 				body.transaction['transaction_lines'][0]['tax_rate'];
