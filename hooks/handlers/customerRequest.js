@@ -4,6 +4,10 @@ var fetch = require('node-fetch');
 var utils = require('../../lib/utils');
 var Boom = require('boom');
 
+// things that bit us with chrome logger:
+// - it adds properties to logged objects
+// - all external request need to have a timeout, or logs might never come
+
 module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 	var logger = request.raw.res.chrome;
 
@@ -121,7 +125,7 @@ function requestSession( stripe, hoodie, nextDoc, request, logger ) {
 			},
 			cookie: request.headers.cookie,
 			// session shouldn't take longer than that
-			timeout: 1000,
+			timeout: 4000,
 		})
 		.then(utils.parseJson)
 		.then(utils.checkStatus)
@@ -216,7 +220,7 @@ function taxamoTransactionCreate( stripe, hoodie, userDoc, request, logger ) {
 			'Private-Token': hoodie.config.get('taxamoKey'),
 		},
 		body: JSON.stringify(transaction),
-		timeout: 2000,
+		timeout: 3000,
 	})
 	.then(utils.parseJson)
 	.then(utils.checkStatus)
@@ -283,7 +287,7 @@ function buildLocalPlanId( stripe, hoodie, userDoc, request, logger ) {
 				'amount': 0,
 				'force_country_code': userDoc.stripe.country,
 			}),
-			timeout: 2000,
+			timeout: 3000,
 		})
 		.then(utils.parseJson)
 		.then(utils.checkStatus)
