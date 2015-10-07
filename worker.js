@@ -25,7 +25,9 @@ function createPluginDb(hoodie) {
 	return new Promise(function(resolve, reject) {
 		hoodie.database.add('plugin/stripe', function(error) {
 			if ( error && error.error !== 'file_exists' ) {
+				/* eslint-disable no-console */
 				console.log(error);
+				/* eslint-enable no-console */
 				return reject(error);
 			}
 
@@ -44,7 +46,9 @@ function createUserIndex(hoodie) {
 		var mapReduce = {
 			map: function(doc) {
 				if ( doc.stripe && doc.stripe.customerId ) {
+					/* eslint-disable no-undef */
 					emit(doc.stripe.customerId);
+					/* eslint-enable no-undef */
 				}
 			},
 		};

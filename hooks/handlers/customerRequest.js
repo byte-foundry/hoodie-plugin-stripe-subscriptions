@@ -7,6 +7,7 @@ var Boom = require('boom');
 // things that bit us with chrome logger:
 // - it adds properties to logged objects
 // - all external request need to have a timeout, or logs might never come
+// - it's easy to exceed the maximum headers size when you log too much
 
 module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 	var logger = request.raw.res.chrome;
@@ -23,50 +24,64 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 	if ( !hoodie.config.get('taxamoKey') ) {
 		return reply( Boom.expectationFailed( 'Taxamo key not configured') );
 	}
-	if ( !request.payload.args || !request.payload.args[0] ||
-			!request.payload.args[0].plan ) {
+	var requestData = request.payload.args && request.payload.args[0];
+	if ( !requestData || !requestData.plan ) {
 		return reply( Boom.badRequest( 'plan property is mandatory') );
 	}
 
-	var promises = [ requestSession( stripe, hoodie, null, request, logger ) ];
+	// We're gonna start by doing three things in parallel
+	var promises = [];
 
-	if ( !global.allStripePlans ) {
+	// 1. Verify the user session and get its userDoc
+	promises.push(
+		requestSession( stripe, hoodie, null, request, logger )
+			.then(function(userName) {
+				return getUserDoc(
+					stripe, hoodie, userName, request, logger );
+			})
+	);
+
+	// 2. Verify the stripe token and create a taxamo transaction if needed
+	if ( requestData.source ) {
+		promises.push(
+			stripeRetrieveToken(
+				stripe, hoodie, requestData.source, request, logger)
+				.then(function( token ) {
+					return taxamoTransactionCreate(
+						stripe, hoodie, token, request, logger );
+				})
+		);
+	}
+
+	// 3. Fetch all stripe plans if needed
+	if ( !global.allStripePlans ||
+			Object.keys( global.allStripePlans ).length === 0 ) {
 		promises.push( utils.fetchAllStripePlans( stripe ) );
+	}
+	// ... or fetch just the requested stripe plan if needed
+	else if ( !( requestData.plan in global.allStripePlans ) ) {
+		promises.push(
+			utils.fetchStripePlan( stripe, requestData.plan  )
+		);
 	}
 
 	Promise.all(promises)
-		.then(function() {
-			return arguments[0];
-		})
-		.then(function(userName) {
-			return getUserDoc(
-				stripe, hoodie, userName, request, logger );
-		})
-		// verify stripeToken and extract country code
-		.then(function(nextDoc) {
-			if ( request.payload.method === 'customers.create' &&
-					( request.payload.args[0] || {} ).source ) {
-				return stripeRetrieveToken(
-					stripe, hoodie, nextDoc, request, logger );
+		.then(function( results ) {
+			var nextDoc = results[0];
+			var taxamoInfo = results[1];
+
+			if ( taxamoInfo && 'taxCountryCode' in taxamoInfo ) {
+				nextDoc.taxamo = taxamoInfo
 			}
 
 			return nextDoc;
 		})
-		// create palceholder taxamo transaction
-		.then(function(nextDoc) {
-			if ( request.payload.method === 'customers.create' &&
-					( request.payload.args[0] || {} ).source ) {
-				return taxamoTransactionCreate(
-					stripe, hoodie, nextDoc, request, logger );
-			}
-
-			return nextDoc;
-		})
-		// build plan Id that matches VAT amount
+		// verify plan and build plan Id that matches VAT amount
 		.then(function(nextDoc) {
 			return buildLocalPlanId(
 				stripe, hoodie, nextDoc, request, logger );
 		})
+		// create the plan in stripe if it doesn't exist yet
 		.then(function(nextDoc) {
 			if ( !(nextDoc.localPlanId in global.allStripePlans ) ) {
 				return stripePlanCreate(
@@ -75,20 +90,23 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 
 			return nextDoc;
 		})
-		// create stripe customer with reference to placeholder transaction
 		.then(function(nextDoc) {
-			if ( request.payload.method === 'customers.create' ) {
+			// if a token has been sent, try to create the user and subscription
+			if ( requestData.source ) {
 				return stripeCustomerCreate(
 					stripe, hoodie, nextDoc, request, logger );
 			}
 
-			return nextDoc;
-		})
-		// create or update subscription
-		.then(function( nextDoc ) {
-			if ( request.payload.method === 'customers.update' ) {
+			// if no token has been sent but the user is already a customer,
+			// update its subscription
+			if ( nextDoc.stripe && nextDoc.stripe.customerId ) {
 				return stripeSubscriptionUpdate(
 					stripe, hoodie, nextDoc, request, logger );
+			}
+
+			// otherwise double-check that we're dealing with a free plan
+			if ( nextDoc.localPlanId.indexOf('free_') !== 0 ) {
+				throw Boom.forbidden('Only free plans allowed without token.');
 			}
 
 			return nextDoc;
@@ -100,7 +118,7 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 			return reply( null, { plan: nextDoc.stripe.plan });
 		})
 		.catch(function( error ) {
-			logger.error(error);
+			logger.error(error, error.stack);
 			return reply( error );
 		});
 }
@@ -139,11 +157,10 @@ function checkSession( response ) {
 	else {
 		return response.userCtx.name.replace(/^user\//, '');
 	}
-};
+}
 
 function getUserDoc( stripe, hoodie, userName, request, logger ) {
 	return new Promise(function(resolve, reject) {
-
 		hoodie.account.find('user', userName, function( error, userDoc ) {
 			if ( error ) {
 				return reject( error );
@@ -156,32 +173,23 @@ function getUserDoc( stripe, hoodie, userName, request, logger ) {
 			logger.log( userDoc );
 			return resolve( userDoc );
 		});
-
 	});
 }
 
-function stripeRetrieveToken( stripe, hoodie, userDoc, request, logger ) {
+function stripeRetrieveToken( stripe, hoodie, source, request, logger ) {
 	return new Promise(function(resolve, reject) {
-
-		var requestData = request.payload.args[0];
-
-		stripe.tokens.retrieve( requestData.source, function( error, token ) {
+		stripe.tokens.retrieve( source, function( error, token ) {
 			if ( error ) {
 				return reject( error );
 			}
 
-			userDoc.stripe.tokenId = token.id;
-			userDoc.stripe.country = token.card.country;
-
-			logger.log( userDoc );
-			return resolve( userDoc );
+			logger.log( token );
+			return resolve( token );
 		});
-
 	});
 }
 
-function taxamoTransactionCreate( stripe, hoodie, userDoc, request, logger ) {
-	var customer = userDoc.stripe;
+function taxamoTransactionCreate( stripe, hoodie, token, request, logger ) {
 	var requestData = request.payload.args[0];
 
 	var transaction = {
@@ -192,11 +200,11 @@ function taxamoTransactionCreate( stripe, hoodie, userDoc, request, logger ) {
 					'amount': 0,
 				},
 			],
-			'currency_code': requestData.currencyCode || 'USD',
+			'currency_code': requestData.currencyCode || 'USD',
 			'description': 'placeholder transaction',
 			'status': 'C',
 			'buyer_credit_card_prefix': requestData.cardPrefix,
-			'force_country_code': customer.country,
+			'force_country_code': token.card.country,
 		},
 		'private_token': hoodie.config.get('taxamoKey'),
 	};
@@ -225,17 +233,18 @@ function taxamoTransactionCreate( stripe, hoodie, userDoc, request, logger ) {
 	.then(utils.parseJson)
 	.then(utils.checkStatus)
 	.then(function(body) {
-		userDoc.taxamo = {
+		var taxamo = {
 			id: body.transaction.key,
 			taxNumber: body.transaction['buyer_tax_number'],
 			taxRate: body.transaction['transaction_lines'][0]['tax_rate'],
 			taxRegion: body.transaction['tax_region'],
-			taxCountryCode: body.transaction['tax_region'],
+			taxCountryCode: body.transaction['tax_country_code'],
 			taxDeducted: body.transaction['tax_deducted'],
+			billingCountryCode: body.transaction['billing_country_code'],
 		};
 
-		logger.log( userDoc, transaction, body );
-		return userDoc;
+		logger.log( transaction, body );
+		return taxamo;
 	});
 }
 
@@ -252,13 +261,33 @@ function buildLocalPlanId( stripe, hoodie, userDoc, request, logger ) {
 			return reject( Boom.forbidden('Base plan doesn\'t exist.') );
 		}
 
-		if ( !userDoc.stripe || !userDoc.taxamo ) {
-			return reject( Boom.forbidden(
-				'Customer doesn\'t exist. Cannot update subscription.') );
+		// subscription to a free plan
+		if ( ( !requestData.source && !userDoc.stripe.customerId ) ||
+				basePlan.id.indexOf('free_') === 0 ) {
+
+			if ( basePlan.id.indexOf('free_') !== 0 ) {
+				return reject(
+					Boom.forbidden('Only free plans allowed without token.') );
+			}
+
+			userDoc.localPlanId = basePlan.id;
+
+			logger.log( userDoc );
+			return resolve( userDoc );
 		}
 
-		userDoc.localPlanId = requestData.plan;
+		if ( !userDoc.taxamo ) {
+			return reject( Boom.forbidden(
+				'User has no transaction. Cannot update subscription.') );
+		}
+		if ( !userDoc.taxamo.taxCountryCode ) {
+			return reject( Boom.forbidden(
+				'User has no valid country. Cannot update subscription.') );
+		}
+
 		if ( userDoc.taxamo.taxRegion !== 'EU' ) {
+			userDoc.localPlanId = basePlan.id;
+
 			logger.log( userDoc );
 			return resolve( userDoc );
 		}
@@ -266,7 +295,7 @@ function buildLocalPlanId( stripe, hoodie, userDoc, request, logger ) {
 		// User is in the EU. Let's find a plan that matches local VAT
 		if ( userDoc.taxamo.taxRate !== 0 ) {
 			userDoc.localPlanId =
-				userDoc.localPlanId
+				basePlan.id
 					.replace('USD', 'EUR')
 					.replace(/taxfree/, userDoc.taxamo.taxRate + 'VAT');
 
@@ -285,7 +314,7 @@ function buildLocalPlanId( stripe, hoodie, userDoc, request, logger ) {
 			body: JSON.stringify({
 				'currency_code': 'EUR',
 				'amount': 0,
-				'force_country_code': userDoc.stripe.country,
+				'force_country_code': userDoc.taxamo.taxCountryCode,
 			}),
 			timeout: 3000,
 		})
@@ -295,7 +324,7 @@ function buildLocalPlanId( stripe, hoodie, userDoc, request, logger ) {
 			userDoc.taxamo.taxRate =
 				body.transaction['transaction_lines'][0]['tax_rate'];
 			userDoc.localPlanId =
-				userDoc.localPlanId
+				basePlan.id
 					.replace('USD', 'EUR')
 					.replace(/taxfree/, userDoc.taxamo.taxRate + 'VAT');
 
@@ -381,11 +410,8 @@ function stripeCustomerCreate( stripe, hoodie, userDoc, request, logger ) {
 
 			var subscription = body.subscriptions.data[0];
 
-			delete userDoc.localPlanId;
 			customer.customerId = body.id;
 			customer.subscriptionId = subscription.id;
-			customer.plan = subscription.plan.id;
-			userDoc.roles.push( 'stripe:plan:' + subscription.plan.id );
 
 			logger.log( userDoc, body );
 			return resolve( userDoc );
@@ -416,18 +442,10 @@ function stripeSubscriptionUpdate( stripe, hoodie, userDoc, request, logger ) {
 			},
 			function( error, body ) {
 				if ( error ) {
-					return reject( err );
+					return reject( error );
 				}
 
-				delete userDoc.localPlanId;
-				customer.plan = body.plan.id;
-				userDoc.roles.forEach(function( role, i ) {
-					if ( role.indexOf('stripe:plan:') === 0 ) {
-						userDoc.roles[i] = 'stripe:plan:' + customer.plan;
-					}
-				});
-
-				logger.log( userDoc, body )
+				logger.log( body )
 				return resolve( userDoc, body );
 			}
 		);
@@ -436,6 +454,21 @@ function stripeSubscriptionUpdate( stripe, hoodie, userDoc, request, logger ) {
 
 function updateAccount( stripe, hoodie, userDoc ) {
 	return new Promise(function(resolve, reject) {
+
+		userDoc.stripe.plan = userDoc.localPlanId;
+		delete userDoc.localPlanId;
+
+		// update or add the plan to the roles object
+		var updated;
+		userDoc.roles.forEach(function( role, i ) {
+			if ( role.indexOf('stripe:plan:') === 0 ) {
+				updated = true;
+				userDoc.roles[i] = 'stripe:plan:' + userDoc.stripe.plan;
+			}
+		});
+		if ( !updated ) {
+			userDoc.roles.push( 'stripe:plan:' + userDoc.stripe.plan );
+		}
 
 		hoodie.account.update('user', userDoc.id, userDoc, function(error) {
 			if ( error ) {

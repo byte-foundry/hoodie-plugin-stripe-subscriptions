@@ -13,7 +13,7 @@ if ( typeof require !== 'undefined' ) {
 			throw new Error('STRIPE_KEY env variable required');
 		}
 
-		stripe = Stripe(process.env.STRIPE_KEY);
+		var stripe = Stripe(process.env.STRIPE_KEY);
 
 		stripe.tokens.create({
 			card: card,
@@ -21,13 +21,14 @@ if ( typeof require !== 'undefined' ) {
 	};
 }
 
-function randomSignup() {
+/* eslint-disable no-console */
+function randomSignUpIn() {
 	var username = 'u' + Math.round( Math.random() * 1E9 );
 	var password = 'p' + Math.round( Math.random() * 1E9 );
 	var hoodieId = Math.random().toString().substr(2);
 	var userUrl = 'org.couchdb.user:user/' + username;
 
-	return (fetch || _fetch)(
+	return (fetch || window._fetch)(
 		HOODIE_URL + '/_api/_users/' + encodeURIComponent(userUrl),
 		{
 			method: 'put',
@@ -49,11 +50,15 @@ function randomSignup() {
 			}),
 		}
 	)
+	// we need to wait a bit before the user is confirmed
+	// automatically by Hoodie
 	.then(function() {
-		return {
-			name: username,
-			password: password,
-		};
+		return new Promise(function(resolve) {
+			setTimeout(function() {
+				hoodie.account.signIn( username, password );
+				resolve();
+			}, 300);
+		});
 	});
 }
 
@@ -79,24 +84,11 @@ describe('customerRequest', function() {
 			});
 	});
 
-	describe('create and update stripe subscription', function() {
+	describe('create and update stripe paid subscription', function() {
 		var token;
 
 		before(function(done) {
-			randomSignup()
-				// we need to wait a bit before the user is confirmed
-				// automatically by Hoodie
-				.then(function(_credentials) {
-					return new Promise(function(resolve) {
-						setTimeout(function() {
-							resolve(_credentials);
-						}, 300);
-					});
-				})
-				.then(function(_credentials) {
-					return hoodie.account
-							.signIn(_credentials.name, _credentials.password);
-				})
+			randomSignUpIn()
 				.then(function() {
 					done();
 				})
@@ -118,7 +110,7 @@ describe('customerRequest', function() {
 			});
 		});
 
-		it('can create a customer and subscribe to the free plan',
+		it('can create a customer and subscribe to a paid plan',
 			function(done) {
 				this.timeout(5000);
 
@@ -139,7 +131,7 @@ describe('customerRequest', function() {
 			}
 		);
 
-		it('can update a customer and subscribe to the free plan',
+		it('can update a customer and subscribe to another paid plan',
 			function(done) {
 				this.timeout(5000);
 
@@ -158,6 +150,8 @@ describe('customerRequest', function() {
 
 		it('stores information about the plan the user is subscribed to',
 			function(done) {
+				this.timeout(3000);
+
 				hoodie.request('get', '/_session')
 					.then(function(body) {
 						expect(body.userCtx.roles)
@@ -169,5 +163,100 @@ describe('customerRequest', function() {
 					});
 			}
 		);
+
+		// TODO: for some reason signOut fails when tests are run from
+		// the command line so you can test only this describe block or
+		// the following.
+		after(function(done) {
+			hoodie.account.signOut()
+				.then(function() {
+					done();
+				});
+		});
+	});
+
+	describe('create and update stripe free subscription', function() {
+		var token;
+
+		before(function(done) {
+			randomSignUpIn()
+				.then(function() {
+					done();
+				})
+				.catch(function( error ) {
+					console.log(error);
+				});
+			});
+
+		before(function(done) {
+			stripeTokensCreate({
+				'number': '4242424242424242',
+				'exp_month': '12',
+				'exp_year': '2017',
+				'cvc': '272',
+				'name': 'ME MYSLEF AND I',
+			}, function(err, _token) {
+				token = _token;
+				done();
+			});
+		});
+
+		it('can create a customer and subscribe to a free plan',
+			function(done) {
+				this.timeout(5000);
+
+				hoodie.stripe.customers.create({
+					plan: 'free_test0_USD_taxfree',
+				})
+				.then(function(body) {
+					expect(body.plan).to.equal('free_test0_USD_taxfree');
+					done();
+				})
+				.catch(function( error ) {
+					console.log(error);
+				});
+			}
+		);
+
+		it('can update a customer and upgrade to a paid plan',
+			function(done) {
+				this.timeout(5000);
+
+				hoodie.stripe.customers.updateSubscription({
+						source: token.id,
+						taxNumber: undefined,
+						cardPrefix: '424242424',
+						currencyCode: 'USD',
+						plan: 'hoodie_test2_USD_taxfree',
+					})
+					.then(function(body) {
+						expect(body.plan).to.equal('hoodie_test2_USD_taxfree');
+						done();
+					})
+					.catch(function( error ) {
+						console.log(error);
+					});
+			}
+		);
+
+		it('stores information about the plan the user is subscribed to',
+			function(done) {
+				this.timeout(3000);
+
+				hoodie.request('get', '/_session')
+					.then(function(body) {
+						expect(body.userCtx.roles)
+							.include('stripe:plan:hoodie_test2_USD_taxfree');
+						done();
+					})
+					.catch(function( error ) {
+						console.log(error);
+					});
+			}
+		);
+
+		after(function() {
+			hoodie.account.signOut();
+		});
 	});
 });

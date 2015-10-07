@@ -1,24 +1,24 @@
 /*
-  Hooks allow you to alter the behaviour of hoodie-server,
-  Hoodie’s core backend module.
+	Hooks allow you to alter the behaviour of hoodie-server,
+	Hoodie’s core backend module.
 
-  This is possible:
-  - get a notification when something in hoodie-server happens
-  - extend core features of hoodie-server from a plugin
+	This is possible:
+	- get a notification when something in hoodie-server happens
+	- extend core features of hoodie-server from a plugin
 
-  A hook is defined as a function that takes a number of arguments
-  and possibly a return value. Each hook has its own conventions,
-  based on where in hoodie-server it hooks into.
+	A hook is defined as a function that takes a number of arguments
+	and possibly a return value. Each hook has its own conventions,
+	based on where in hoodie-server it hooks into.
 
-  There are fundamentally two types of hooks:
-  - static hooks (see static.js)
-  - dynamic hooks (this file)
+	There are fundamentally two types of hooks:
+	- static hooks (see static.js)
+	- dynamic hooks (this file)
 
-  The core difference is that static hooks work standalone and just
-  receive a number of arguments and maybe return a value. Dynamic
-  hooks get initialised with a live instance of the hoodie object,
-  that is also available in worker.js, with access to the database,
-  and other convenience libraries.
+	The core difference is that static hooks work standalone and just
+	receive a number of arguments and maybe return a value. Dynamic
+	hooks get initialised with a live instance of the hoodie object,
+	that is also available in worker.js, with access to the database,
+	and other convenience libraries.
 */
 var handlePingRequest = require('./handlers/pingRequest');
 var handleCustomerRequest = require('./handlers/customerRequest');
@@ -27,7 +27,7 @@ var chromelogger = require('chromelogger');
 
 var chrome;
 
-module.exports = function( hoodie, options ) {
+module.exports = function( hoodie ) {
 	return {
 		/*
 			group: server.api.*
@@ -38,11 +38,11 @@ module.exports = function( hoodie, options ) {
 			name: server.api.plugin-request
 			description: This hook handles any request to
 				`/_api/_plugins/{pluginname}/_api`.
-				 (omitting the hoodie-plugin- prefix in the plugin name)
-				 It gets the regular hapi request & reply objects as parameters.
-				 See http://hapijs.com/api#request-object
-				 and http://hapijs.com/api#reply-interface
-				 for details.
+				(omitting the hoodie-plugin- prefix in the plugin name)
+				It gets the regular hapi request & reply objects as parameters.
+				See http://hapijs.com/api#request-object
+				and http://hapijs.com/api#reply-interface
+				for details.
 
 			parameters:
 			- request: the hapi request object
@@ -71,14 +71,15 @@ module.exports = function( hoodie, options ) {
 					handleWebhooksRequest( hoodie, request, reply );
 				}
 
-			} catch (e) {
-				request.raw.res.chrome.error(e, e.stack);
+			} catch (error) {
+				request.raw.res.chrome.error(error, error.stack);
 				reply();
 			}
 		},
 	};
 };
 
+/* eslint-disable no-console */
 chrome = {
 	log: console.log.bind(console),
 	warn: console.log.bind(console),

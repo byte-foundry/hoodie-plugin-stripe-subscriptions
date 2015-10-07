@@ -15,7 +15,7 @@ describe('utils.js', function() {
 				throw new Error('STRIPE_KEY env variable required');
 			}
 
-			stripe = Stripe(STRIPE_KEY);
+			var stripe = Stripe(STRIPE_KEY);
 
 			utils.fetchAllStripePlans( stripe, { limit: 1 } )
 				.then(function(allStripePlans) {

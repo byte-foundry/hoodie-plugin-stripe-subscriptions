@@ -10,7 +10,7 @@
   ],
   "main": "worker.js",
   "scripts": {
-    "lint": "eslint hooks/*.js hooks/**/*.js lib/*.js test/*.js worker.js && jscs hooks/*.js hooks/**/*.js lib/*.js test/*.js worker.js",
+    "lint": "eslint hooks/*.js hooks/handlers/*.js hooks/**/*.js lib/*.js test/*.js worker.js && jscs hooks/*.js hooks/handlers/*.js hooks/**/*.js lib/*.js test/*.js worker.js",
     "test": "mocha test/*.js test/**.js --colors",
     "ping": "API_URL='/_api/_plugins/stripe/_api' && curl $HOODIE_URL$API_URL -H 'Content-Type: application/json' -H 'Pragma: no-cache' -H 'Cache-Control: no-cache' --data '{\"method\":\"ping\"}'",
     "serve": "browser-sync start --server --startPath 'test/index.html' --files 'hoodie.stripe.js, test/*.js, test/index.html'"
