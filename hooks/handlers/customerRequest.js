@@ -115,7 +115,10 @@ module.exports = function handleCustomerRequest( hoodie, request, reply ) {
 			return updateAccount( stripe, hoodie, nextDoc, request, logger );
 		})
 		.then(function(nextDoc) {
-			return reply( null, { plan: nextDoc.stripe.plan });
+			return reply( null, {
+				plan: nextDoc.stripe.plan,
+				authorization: request.headers.authorization,
+			});
 		})
 		.catch(function( error ) {
 			logger.error(error, error.stack);
