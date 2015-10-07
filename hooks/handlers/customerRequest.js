@@ -136,7 +136,7 @@ function requestSession( stripe, hoodie, nextDoc, request, logger ) {
 			'/_api/_session';
 	}
 
-	logger.log(sessionUri);
+	logger.log(sessionUri, request.headers.authorization);
 
 	return fetch(sessionUri, {
 			method: 'get',
