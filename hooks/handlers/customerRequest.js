@@ -197,10 +197,14 @@ function taxamoTransactionCreate( stripe, hoodie, userDoc, request, logger ) {
 		'private_token': hoodie.config.get('taxamoKey'),
 	};
 
-	if (request.info.remoteAddress !== '127.0.0.1') {
+	// let's try to rull out local IPV4 adresses
+	// TODO: investigate what happens with IPV6 LAN addresses
+	var remote = request.info.remoteAddress;
+	if ( remote !== '127.0.0.1' && remote.indexOf('192.168.') !== 0 &&
+			remote.indexOf('10.') !== 0 ) {
 		transaction['buyer_ip'] = request.info.remoteAddress;
 	}
-	if (requestData.taxNumber) {
+	if ( requestData.taxNumber ) {
 		transaction['buyer_tax_number'] = requestData.taxNumber;
 	}
 
