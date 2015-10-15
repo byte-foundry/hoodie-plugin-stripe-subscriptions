@@ -12,28 +12,25 @@ function stripeAPI(hoodie) {
 				});
 		},
 		customers: {
-			create: function(args) {
-				return hoodie.request('post', hoodie.stripe.apiUrl, {
-						contentType: 'application/json',
-						dataType: 'json',
-						data: JSON.stringify({
-							method: 'customers.create',
-							args: [ args ],
-						}),
-					});
-			},
-			updateSubscription: function(args) {
-				return hoodie.request('post', hoodie.stripe.apiUrl, {
-						contentType: 'application/json',
-						dataType: 'json',
-						data: JSON.stringify({
-							method: 'customers.update',
-							args: [ args ],
-						}),
-					});
-			},
+			create: requester('customers.create'),
+			update: requester('customers.update'),
+			retrieve: requester('customers.retrieve'),
+			updateSubscription: requester('customers.updateSubscription'),
 		},
 	};
+
+	function requester( method ) {
+		return function() {
+			return hoodie.request('post', hoodie.stripe.apiUrl, {
+					contentType: 'application/json',
+					dataType: 'json',
+					data: JSON.stringify({
+						method: method,
+						args: Array.prototype.slice.call( arguments, 0 ),
+					}),
+				});
+		}
+	}
 }
 
 if ( typeof Hoodie !== 'undefined' ) {
