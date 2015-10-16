@@ -1,7 +1,7 @@
 {
-  "name": "hoodie-plugin-stripe-taxamo",
+  "name": "hoodie-plugin-stripe-subscriptions",
   "version": "1.0.0",
-  "description": "Hoodie signup with stripe",
+  "description": "Hoodie plugin to handle Stripe subscriptions. Optionaly handles EU VAT and other local taxes with Taxamo",
   "keywords": [
     "hoodie",
     "plugin",

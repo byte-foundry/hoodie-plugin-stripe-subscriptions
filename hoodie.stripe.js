@@ -1,6 +1,6 @@
 function stripeAPI(hoodie) {
 	return hoodie.stripe = {
-		apiUrl: '/_plugins/stripe-taxamo/_api',
+		apiUrl: '/_plugins/stripe-subscriptions/_api',
 		ping: function( data ) {
 			return hoodie.request('post', hoodie.stripe.apiUrl, {
 					contentType: 'application/json',

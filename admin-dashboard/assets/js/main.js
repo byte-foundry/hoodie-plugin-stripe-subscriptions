@@ -33,7 +33,11 @@ $(function() {
 		$('[name=stripeKey]').val(doc.config.stripeKey);
 		$('[name=taxamoKey]').val(doc.config.taxamoKey);
 		$('[name=sessionUri]').val(doc.config.sessionUri);
-		$('[name=stripeDebug]').prop('checked', doc.config.stripeDebug);
+		$('[name=stripeDebug]').prop('checked', doc.config.stripeDebug)
+			.iCheck('update');
+		$('[name=euroInEU]').prop('checked', doc.config.euroInEU)
+			.iCheck('update');
+
 	});
 
 	function setSubmitButtonToSaving(form) {
@@ -70,6 +74,7 @@ $(function() {
 			taxamoKey: $.trim( $('[name=taxamoKey]').val() ),
 			sessionUri: $.trim( $('[name=sessionUri]').val() ),
 			stripeDebug: $('[name=stripeDebug]').prop('checked'),
+			euroInEU: $('[name=euroInEU]').prop('checked'),
 		};
 		updateConfig(cfg, function(err) {
 			if (err) {
