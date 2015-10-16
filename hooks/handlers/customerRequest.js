@@ -292,7 +292,6 @@ function stripeCustomerRetrieve( stripe, hoodie, userDoc, request, logger ) {
 			logger.log( body );
 			return resolve( body );
 		});
-
 	});
 }
 
@@ -307,10 +306,11 @@ function stripeCustomerCreate( stripe, hoodie, userDoc, request, logger ) {
 		}
 
 		stripe.customers.create({
-			'description': 'Customer for ' + userDoc.name.split('/')[1],
-			'source': requestData.source,
-			'plan': requestData.plan,
-			'metadata': {
+			description: 'Customer for ' + userDoc.name.split('/')[1],
+			source: requestData.source,
+			plan: requestData.plan,
+			coupon: requestData.coupon,
+			metadata: {
 				'hoodieId': userDoc.id,
 				'taxamo_transaction_key': taxamo && taxamo.key,
 			},
@@ -349,6 +349,7 @@ function stripeCustomerUpdate( stripe, hoodie, userDoc, request, logger ) {
 
 		stripe.customers.update( customer.customerId, {
 			'source': requestData.source,
+			'coupon': requestData.coupon,
 			'metadata': {
 				'hoodieId': userDoc.id,
 				'taxamo_transaction_key': taxamo && taxamo.key,
@@ -386,6 +387,7 @@ function stripeUpdateSubscription( stripe, hoodie, userDoc, request, logger ) {
 			customer.subscriptionId,
 			{
 				plan: requestData.plan,
+				coupon: requestData.coupon,
 			},
 			function( error, body ) {
 				if ( error ) {
