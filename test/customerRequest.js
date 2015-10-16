@@ -116,7 +116,7 @@ describe('customerRequest', function() {
 
 				hoodie.stripe.customers.create({
 					source: token.id,
-					taxNumber: 'DE123475223',
+					taxNumber: undefined,
 					cardPrefix: '424242424',
 					currencyCode: 'USD',
 					plan: 'hoodie_test1_USD_taxfree',
