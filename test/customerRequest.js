@@ -76,10 +76,10 @@ describe('customerRequest', function() {
 		expect(reply).to.be.an.instanceOf(Error);
 	});
 
-	it('should reply an error when plan isn\'t specified', function(done) {
+	it('should reply an error when user isn\'t logged in', function(done) {
 		hoodie.stripe.customers.create()
-			.catch(function(error) {
-				expect(error.statusCode).to.equal(400);
+			.catch(function(error) {console.log(error);
+				expect(error.statusCode).to.equal(401);
 				done();
 			});
 	});
@@ -99,7 +99,7 @@ describe('customerRequest', function() {
 
 		before(function(done) {
 			stripeTokensCreate({
-				'number': '4242424242424242',
+				'number': '4012888888881881',
 				'exp_month': '12',
 				'exp_year': '2017',
 				'cvc': '272',
@@ -170,7 +170,9 @@ describe('customerRequest', function() {
 		after(function(done) {
 			hoodie.account.signOut()
 				.then(function() {
-					done();
+					setTimeout(function() {
+						done();
+					}, 1000);
 				});
 		});
 	});
