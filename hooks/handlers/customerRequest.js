@@ -3,6 +3,7 @@ var Stripe = require('stripe');
 var fetch = require('node-fetch');
 var utils = require('../../lib/utils');
 var Boom = require('boom');
+var _ = require('lodash');
 
 // things that bit us with chrome logger:
 // - it adds properties to logged objects
@@ -36,17 +37,11 @@ function handleCustomerRequest( hoodie, request, reply ) {
 			})
 	);
 
-	// 2. Verify the stripe token and create a taxamo transaction if needed
+	// 2. Verify the stripe token
 	if ( requestData && requestData.source ) {
 		promises.push(
 			stripeRetrieveToken(
 				stripe, hoodie, requestData.source, request, logger)
-				.then(function( token ) {
-					if ( hoodie.config.get('taxamoKey') ) {
-						return taxamoTransactionCreate(
-							stripe, hoodie, token, request, logger );
-					}
-				})
 		);
 	}
 
@@ -72,21 +67,29 @@ function handleCustomerRequest( hoodie, request, reply ) {
 	Promise.all(promises)
 		.then(function( results ) {
 			var nextDoc = results[0];
-			var taxamoInfo = results[1];
+			var token = results[1];
 
-			if ( taxamoInfo && 'key' in taxamoInfo ) {
-				nextDoc.taxamo = taxamoInfo
-			}
-			logger.log('taxamoInfo', taxamoInfo);
+			if ( hoodie.config.get('taxamoKey') && token && token.card ) {
+				return taxamoTransactionCreate(
+						stripe, hoodie, results, request, logger
+					)
+					.then(function( taxamo ) {
+						nextDoc.taxamo = taxamo;
 
-			// There's a special option to only accept plans priced in euro for
-			// EU customers.
-			if ( hoodie.config.get('euroInEU') && nextDoc.taxamo &&
-					nextDoc.taxamo['tax_region'] === 'EU' &&
-					requestData.currencyCode !== 'EUR' ) {
+						// There's a special option to only accept plans priced
+						// in euro for EU customers.
+						if (
+							hoodie.config.get('euroInEU') &&
+							taxamo['tax_region'] === 'EU' &&
+							requestData['currency_code'] !== 'EUR'
+						) {
+							throw Boom.forbidden(
+								'European customers must choose a plan in euro.'
+							);
+						}
 
-				throw Boom.forbidden(
-					'European customers must choose a plan in euro.');
+						return nextDoc;
+					});
 			}
 
 			return nextDoc;
@@ -99,9 +102,15 @@ function handleCustomerRequest( hoodie, request, reply ) {
 
 			// This will be used to change payment method
 			// if a payment has been provided then it has already been verified
-			if ( requestMethod === 'customers.update' ||
-					( requestMethod === 'customers.updateSubscription' &&
-					requestData.source ) ) {
+			if (
+				requestMethod === 'customers.update' ||
+				// We also need to update the customer on updateSubscription
+				// when a source is provided, because a new taxamo transaction
+				// has been created and it must appear in the metadata of the
+				// Stripe customer.
+				( requestMethod === 'customers.updateSubscription' &&
+				requestData.source )
+			) {
 
 				return stripeCustomerUpdate(
 					stripe, hoodie, nextDoc, request, logger );
@@ -198,49 +207,65 @@ function stripeRetrieveToken( stripe, hoodie, source, request, logger ) {
 	});
 }
 
-function taxamoTransactionCreate( stripe, hoodie, token, request, logger ) {
+function taxamoTransactionCreate( stripe, hoodie, results, request, logger ) {
 	var requestData = request.payload.args[0];
-
-	var body = {
-		transaction: {
-			'transaction_lines': [
-				{
-					'custom_id': 'dontRemoveThisProp',
-				},
-			],
-			'currency_code': requestData.currencyCode || 'USD',
-			'description': 'placeholder transaction',
-			'status': 'C',
-			'buyer_credit_card_prefix': requestData.cardPrefix,
-			'force_country_code': token.card.country,
+	var userDoc = results[0];
+	var token = results[1];
+	var whitelist = [
+		'currency_code',
+		'buyer_credit_card_prefix',
+		'buyer_email',
+		'buyer_tax_number',
+	];
+	// mix following object with whitelisted properties from requestData
+	var body = _.mixin({
+			transaction: {
+				'transaction_lines': [
+					{
+						'custom_id': 'dontRemoveThisProp',
+						'amount': 0,
+					},
+				],
+				'currency_code': 'USD',
+				'description': 'placeholder transaction',
+				'status': 'C',
+				'force_country_code': token.card.country,
+				'customer_id': userDoc.id,
+			},
 		},
-	};
+		_.pick(requestData, function( value, key ) {
+			return _.includes( whitelist, key );
+		}));
+
+	if (
+		!requestData['buyer_tax_number'] &&
+		hoodie.config.get('universalPricing')
+	) {
+		// universal pricing (only applies to B2C transactions)
+		delete body.transaction['transaction_lines'][0].amount;
+		body.transaction['transaction_lines'][0]['total_amount'] = 0;
+	}
 
 	if ( token['client_ip'] ) {
 		body.transaction['buyer_ip'] = token['client_ip'];
 	}
 
-	if ( requestData.taxNumber ) {
-		body.transaction['buyer_tax_number'] = requestData.taxNumber;
-		// dynamic pricing for B2B
-		body.transaction['transaction_lines'][0].amount = 0;
-	}
 	// when a test key is used, request are allowed to force 'tax_deducted'
-	else if ( /^sk_test_/.test( hoodie.config.get('stripeKey') ) &&
-			requestData.taxDeducted ) {
-		body.transaction['tax_deducted'] = true;
-		// dynamic pricing for B2B
-		body.transaction['transaction_lines'][0].amount = 0;
-	}
-	else {
-		// universal pricing for B2C
-		body.transaction['transaction_lines'][0]['total_amount'] = 0;
+	if (
+		/^sk_test_/.test( hoodie.config.get('stripeKey') ) &&
+		requestData['tax_deducted']
+	) {
+		body.transaction['tax_deducted'] = requestData['tax_deducted'];
 	}
 
 	// When a test key is used, requests are allowed to overwrite country_code
-	if ( /^sk_test_/.test( hoodie.config.get('stripeKey') ) &&
-			requestData.countryCode ) {
-		body.transaction['force_country_code'] = requestData.countryCode;
+	if (
+		/^sk_test_/.test( hoodie.config.get('stripeKey') ) &&
+		requestData['force_country_code']
+	) {
+		body.transaction['force_country_code'] = (
+			requestData['force_country_code']
+		);
 	}
 
 	var headers = {
@@ -297,25 +322,35 @@ function stripeCustomerRetrieve( stripe, hoodie, userDoc, request, logger ) {
 
 function stripeCustomerCreate( stripe, hoodie, userDoc, request, logger ) {
 	return new Promise(function(resolve, reject) {
-		var requestData = request.payload.args[0];
-		var taxamo = userDoc.taxamo;
-
 		if ( userDoc.stripe && userDoc.stripe.customerId ) {
 			return reject( Boom.forbidden(
 				'Cannot create customer: user is already a customer.') );
 		}
 
-		stripe.customers.create({
-			description: 'Customer for ' + userDoc.name.split('/')[1],
-			source: requestData.source,
-			plan: requestData.plan,
-			coupon: requestData.coupon,
-			metadata: {
-				'hoodieId': userDoc.id,
-				'taxamo_transaction_key': taxamo && taxamo.key,
+		var requestData = request.payload.args[0];
+		var taxamo = userDoc.taxamo;
+		var config = hoodie.config;
+		var whitelist = [
+				'source',
+				'plan',
+				'coupon',
+			];
+		// mix following object with whitelisted properties from requestData
+		var params = _.mixin({
+				'description': 'Customer for ' + userDoc.name.split('/')[1],
+				'tax_percent': !taxamo || config.get('universalPricing') ?
+					0 :
+					taxamo['tax_rate'],
+				'metadata': {
+					'hoodieId': userDoc.id,
+					'taxamo_transaction_key': taxamo && taxamo.key,
+				},
 			},
+			_.pick(requestData, function( value, key ) {
+				return _.includes( whitelist, key );
+			}));
 
-		}, function( error, body ) {
+		stripe.customers.create( params, function( error, body ) {
 			if ( error ) {
 				return reject( error );
 			}
@@ -347,22 +382,30 @@ function stripeCustomerUpdate( stripe, hoodie, userDoc, request, logger ) {
 				'Cannot update customer: no source provided.') );
 		}
 
-		stripe.customers.update( customer.customerId, {
-			'source': requestData.source,
-			'coupon': requestData.coupon,
-			'metadata': {
-				'hoodieId': userDoc.id,
-				'taxamo_transaction_key': taxamo && taxamo.key,
+		var whitelist = [
+				'source',
+				'coupon',
+			];
+		// mix following object with whitelisted properties from requestData
+		var params = _.mixin({
+				'metadata': {
+					'hoodieId': userDoc.id,
+					'taxamo_transaction_key': taxamo && taxamo.key,
+				},
 			},
+			_.pick(requestData, function( value, key ) {
+				return _.includes( whitelist, key );
+			}));
 
-		}, function( error, body ) {
-			if ( error ) {
-				return reject( error );
-			}
+		stripe.customers.update( customer.customerId, params,
+			function( error, body ) {
+				if ( error ) {
+					return reject( error );
+				}
 
-			logger.log( body );
-			return resolve( userDoc );
-		});
+				logger.log( body );
+				return resolve( userDoc );
+			});
 
 	});
 }
@@ -372,6 +415,8 @@ function stripeUpdateSubscription( stripe, hoodie, userDoc, request, logger ) {
 	return new Promise(function(resolve, reject) {
 		var requestData = request.payload.args[0];
 		var customer = userDoc.stripe;
+		var taxamo = userDoc.taxamo;
+		var config = hoodie.config;
 
 		if ( !customer || !customer.customerId ) {
 			return reject( Boom.forbidden(
@@ -382,13 +427,24 @@ function stripeUpdateSubscription( stripe, hoodie, userDoc, request, logger ) {
 				'Cannot update subscription: user has no subscription.') );
 		}
 
+		var whitelist = [
+				'plan',
+				'coupon',
+			];
+		// mix following object with whitelisted properties from requestData
+		var params = _.mixin({
+				'tax_percent': !taxamo || config.get('universalPricing') ?
+					0 :
+					taxamo['tax_rate'],
+			},
+			_.pick(requestData, function( value, key ) {
+				return _.includes( whitelist, key );
+			}));
+
 		stripe.customers.updateSubscription(
 			customer.customerId,
 			customer.subscriptionId,
-			{
-				plan: requestData.plan,
-				coupon: requestData.coupon,
-			},
+			params,
 			function( error, body ) {
 				if ( error ) {
 					return reject( error );

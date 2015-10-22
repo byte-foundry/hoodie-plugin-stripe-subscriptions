@@ -21,6 +21,7 @@
     "chromelogger": "^1.1.1",
     "couchr": "^0.0.16",
     "hoodie": "^2.1.1",
+    "lodash": "^3.10.1",
     "node-fetch": "^1.3.2",
     "stripe": "^3.9.0",
     "vatrates": "^1.2.0"

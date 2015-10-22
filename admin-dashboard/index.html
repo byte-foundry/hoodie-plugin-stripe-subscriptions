@@ -12,24 +12,44 @@
   <body>
     <!-- This index will be loaded in an iframe in you admin panel, where you can config your plugin -->
     <div class="container">
-      <h1>Stripe Settings</h1>
-      <h2 class="description">Configure Strip key and Taxamo</h2>
+      <h1>Stripe-Subscriptions Settings</h1>
+      <h2 class="description">Configure Stripe key</h2>
       <form role="form" id="stripeConfig">
         <fieldset>
           <label for="stripeKey">Stripe Secret Key</label>
           <input type="text" class="form-control" id="stripeKey" name="stripeKey" placeholder="sk_"/>
-          <label for="taxamoKey">Taxamo Secret Key (optionnal)</label>
+          <button class="submit btn" type="submit">Save settings</button>
+        </fieldset>
+      </form>
+
+      <h2 class="description">Configure Taxamo, currencies and taxes (optionnal)</h2>
+      <form role="form" id="taxamoConfig">
+        <fieldset>
+          <label for="taxamoKey">Taxamo Secret Key</label>
           <input type="text" class="form-control" id="taxamoKey" name="taxamoKey" placeholder="priv_"/>
+          <label for="universalPricing">Universal Pricing</label>
+          <div class="form-control" style="margin: 1.25em 0px 1.25em 30%; background: none; border: none;">
+            <input type="checkbox" id="universalPricing" name="universalPricing"/> <small></small>
+          </div>
           <label for="euroInEU">Accept only euro in EU</label>
           <div class="form-control" style="margin: 1.25em 0px 1.25em 30%; background: none; border: none;">
-              <input type="checkbox" id="euroInEU" name="euroInEU"/>
+            <input type="checkbox" id="euroInEU" name="euroInEU"/> <small>If payment card has been issued in the EU, currencies other than euro will be rejected</small>
           </div>
+
+          <button class="submit btn" type="submit">Save settings</button>
+        </fieldset>
+      </form>
+
+      <h2 class="description">Configure Taxamo, currencies and taxes (optionnal)</h2>
+      <form role="form" id="miscConfig">
+        <fieldset>
           <label for="sessionUri">Session API URI (optionnal)</label>
           <input type="text" class="form-control" id="sessionUri" name="sessionUri" placeholder="https://backend.com/_api/_session"/>
           <label for="stripeDebug">Enable remote debugging</label>
           <div class="form-control" style="margin: 1.25em 0px 1.25em 30%; background: none; border: none;">
-              <input type="checkbox" id="stripeDebug" name="stripeDebug"/>
+            <input type="checkbox" id="stripeDebug" name="stripeDebug"/>
           </div>
+
           <button class="submit btn" type="submit">Save settings</button>
         </fieldset>
       </form>
