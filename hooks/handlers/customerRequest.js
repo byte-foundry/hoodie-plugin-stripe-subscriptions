@@ -9,7 +9,6 @@ var _ = require('lodash');
 // - it adds properties to logged objects
 // - all external request need to have a timeout, or logs might never come
 // - it's easy to exceed the maximum headers size when you log too much
-
 function handleCustomerRequest( hoodie, request, reply ) {
 	var logger = request.raw.res.chrome;
 
@@ -111,7 +110,6 @@ function handleCustomerRequest( hoodie, request, reply ) {
 				( requestMethod === 'customers.updateSubscription' &&
 				requestData.source )
 			) {
-
 				return stripeCustomerUpdate(
 					stripe, hoodie, nextDoc, request, logger );
 			}
@@ -218,20 +216,18 @@ function taxamoTransactionCreate( stripe, hoodie, results, request, logger ) {
 		'buyer_tax_number',
 	];
 	// mix following object with whitelisted properties from requestData
-	var body = _.mixin({
-			transaction: {
-				'transaction_lines': [
-					{
-						'custom_id': 'dontRemoveThisProp',
-						'amount': 0,
-					},
-				],
-				'currency_code': 'USD',
-				'description': 'placeholder transaction',
-				'status': 'C',
-				'force_country_code': token.card.country,
-				'customer_id': userDoc.id,
-			},
+	var transaction = _.assign({
+			'transaction_lines': [
+				{
+					'custom_id': 'dontRemoveThisProp',
+					'amount': 0,
+				},
+			],
+			'currency_code': 'USD',
+			'description': 'placeholder transaction',
+			'status': 'C',
+			'force_country_code': token.card.country,
+			'customer_id': userDoc.id,
 		},
 		_.pick(requestData, function( value, key ) {
 			return _.includes( whitelist, key );
@@ -242,12 +238,12 @@ function taxamoTransactionCreate( stripe, hoodie, results, request, logger ) {
 		hoodie.config.get('universalPricing')
 	) {
 		// universal pricing (only applies to B2C transactions)
-		delete body.transaction['transaction_lines'][0].amount;
-		body.transaction['transaction_lines'][0]['total_amount'] = 0;
+		delete transaction['transaction_lines'][0].amount;
+		transaction['transaction_lines'][0]['total_amount'] = 0;
 	}
 
 	if ( token['client_ip'] ) {
-		body.transaction['buyer_ip'] = token['client_ip'];
+		transaction['buyer_ip'] = token['client_ip'];
 	}
 
 	// when a test key is used, request are allowed to force 'tax_deducted'
@@ -255,7 +251,7 @@ function taxamoTransactionCreate( stripe, hoodie, results, request, logger ) {
 		/^sk_test_/.test( hoodie.config.get('stripeKey') ) &&
 		requestData['tax_deducted']
 	) {
-		body.transaction['tax_deducted'] = requestData['tax_deducted'];
+		transaction['tax_deducted'] = requestData['tax_deducted'];
 	}
 
 	// When a test key is used, requests are allowed to overwrite country_code
@@ -263,7 +259,7 @@ function taxamoTransactionCreate( stripe, hoodie, results, request, logger ) {
 		/^sk_test_/.test( hoodie.config.get('stripeKey') ) &&
 		requestData['force_country_code']
 	) {
-		body.transaction['force_country_code'] = (
+		transaction['force_country_code'] = (
 			requestData['force_country_code']
 		);
 	}
@@ -277,7 +273,7 @@ function taxamoTransactionCreate( stripe, hoodie, results, request, logger ) {
 	return fetch('https://api.taxamo.com/api/v1/transactions', {
 			method: 'post',
 			headers: headers,
-			body: JSON.stringify(body),
+			body: JSON.stringify({ transaction: transaction }),
 			timeout: 3000,
 		})
 		.then(utils.parseJson)
@@ -336,7 +332,7 @@ function stripeCustomerCreate( stripe, hoodie, userDoc, request, logger ) {
 				'coupon',
 			];
 		// mix following object with whitelisted properties from requestData
-		var params = _.mixin({
+		var params = _.assign({
 				'description': 'Customer for ' + userDoc.name.split('/')[1],
 				'tax_percent': !taxamo || config.get('universalPricing') ?
 					0 :
@@ -387,7 +383,7 @@ function stripeCustomerUpdate( stripe, hoodie, userDoc, request, logger ) {
 				'coupon',
 			];
 		// mix following object with whitelisted properties from requestData
-		var params = _.mixin({
+		var params = _.assign({
 				'metadata': {
 					'hoodieId': userDoc.id,
 					'taxamo_transaction_key': taxamo && taxamo.key,
@@ -432,7 +428,7 @@ function stripeUpdateSubscription( stripe, hoodie, userDoc, request, logger ) {
 				'coupon',
 			];
 		// mix following object with whitelisted properties from requestData
-		var params = _.mixin({
+		var params = _.assign({
 				'tax_percent': !taxamo || config.get('universalPricing') ?
 					0 :
 					taxamo['tax_rate'],
