@@ -115,11 +115,11 @@ describe('customerRequest', function() {
 				this.timeout(5000);
 
 				hoodie.stripe.customers.create({
-					source: token.id,
-					taxNumber: undefined,
-					cardPrefix: '424242424',
-					currencyCode: 'USD',
-					plan: 'hoodie_test1_USD_taxfree',
+					'source': token.id,
+					'plan': 'hoodie_test1_USD_taxfree',
+					'buyer_tax_number': undefined,
+					'buyer_credit_card_prefix': '424242424',
+					'currency_code': 'USD',
 				})
 				.then(function(body) {
 					expect(body.plan).to.equal('hoodie_test1_USD_taxfree');
@@ -226,10 +226,10 @@ describe('customerRequest', function() {
 
 				hoodie.stripe.customers.updateSubscription({
 						source: token.id,
-						taxNumber: undefined,
-						cardPrefix: '424242424',
-						currencyCode: 'USD',
 						plan: 'hoodie_test2_USD_taxfree',
+						'buyer_tax_number': undefined,
+						'buyer_credit_card_prefix': '424242424',
+						'currency_code': 'USD',
 					})
 					.then(function(body) {
 						expect(body.plan).to.equal('hoodie_test2_USD_taxfree');

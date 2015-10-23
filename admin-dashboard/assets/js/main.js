@@ -31,13 +31,16 @@ $(function() {
 			return alert(err);
 		}
 		$('[name=stripeKey]').val(doc.config.stripeKey);
+
 		$('[name=taxamoKey]').val(doc.config.taxamoKey);
+		$('[name=euroInEU]').prop('checked', doc.config.euroInEU)
+			.iCheck('update');
+		$('[name=universalPricing]').prop('checked', doc.config.universalPricing)
+			.iCheck('update');
+
 		$('[name=sessionUri]').val(doc.config.sessionUri);
 		$('[name=stripeDebug]').prop('checked', doc.config.stripeDebug)
 			.iCheck('update');
-		$('[name=euroInEU]').prop('checked', doc.config.euroInEU)
-			.iCheck('update');
-
 	});
 
 	function setSubmitButtonToSaving(form) {
@@ -51,7 +54,7 @@ $(function() {
 		$btn.text('Successfully saved!').addClass('success');
 		_.delay(function() {
 			$(form).find('button[type="submit"]').data('disabled', null);
-			$btn.text($btn.data('originalButtonText')).removeClass('success');;
+			$btn.text($btn.data('originalButtonText')).removeClass('success');
 		}, 2000);
 	}
 
@@ -60,7 +63,7 @@ $(function() {
 		$btn.after('<p class="help-block">' + error + '</p>');
 		_.delay(function() {
 			$(form).find('button[type="submit"]').data('disabled', null);
-			$btn.text($btn.data('originalButtonText')).removeClass('error');;
+			$btn.text($btn.data('originalButtonText')).removeClass('error');
 		}, 2000);
 	}
 
@@ -71,10 +74,50 @@ $(function() {
 		setSubmitButtonToSaving(this);
 		var cfg = {
 			stripeKey: $.trim( $('[name=stripeKey]').val() ),
+		};
+		updateConfig(cfg, function(err) {
+			if (err) {
+				setSubmitButtonToError(el, err);
+			}
+			else {
+				setSubmitButtonToSuccess(el);
+			}
+		});
+		return false;
+	});
+
+	$('#taxamoConfig').submit(function(ev) {
+		var el = this;
+		ev.preventDefault();
+		setSubmitButtonToSaving(this);
+
+		if ( !$.trim( $('[name=taxamoKey]').val() ) ) {
+			return setSubmitButtonToError(el, 'Taxamo key is required.');
+		}
+
+		var cfg = {
 			taxamoKey: $.trim( $('[name=taxamoKey]').val() ),
+			euroInEU: $('[name=euroInEU]').prop('checked'),
+			universalPricing: $('[name=universalPricing]').prop('checked'),
+		};
+		updateConfig(cfg, function(err) {
+			if (err) {
+				setSubmitButtonToError(el, err);
+			}
+			else {
+				setSubmitButtonToSuccess(el);
+			}
+		});
+		return false;
+	});
+
+	$('#miscConfig').submit(function(ev) {
+		var el = this;
+		ev.preventDefault();
+		setSubmitButtonToSaving(this);
+		var cfg = {
 			sessionUri: $.trim( $('[name=sessionUri]').val() ),
 			stripeDebug: $('[name=stripeDebug]').prop('checked'),
-			euroInEU: $('[name=euroInEU]').prop('checked'),
 		};
 		updateConfig(cfg, function(err) {
 			if (err) {
