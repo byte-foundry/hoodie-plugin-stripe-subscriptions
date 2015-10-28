@@ -207,11 +207,9 @@ describe('customerRequest', function() {
 			function(done) {
 				this.timeout(5000);
 
-				hoodie.stripe.customers.create({
-					plan: 'free_test0_USD_taxfree',
-				})
+				hoodie.stripe.customers.create({})
 				.then(function(body) {
-					expect(body.plan).to.equal('free_test0_USD_taxfree');
+					expect(body.plan).to.equal('free_none');
 					done();
 				})
 				.catch(function( error ) {

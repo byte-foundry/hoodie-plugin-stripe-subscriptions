@@ -352,8 +352,15 @@ function stripeCustomerCreate( stripe, hoodie, userDoc, request, logger ) {
 			}
 
 			userDoc.stripe.customerId = body.id;
-			userDoc.stripe.subscriptionId = body.subscriptions.data[0].id;
-			userDoc.stripe.plan = body.subscriptions.data[0].plan.id;
+			userDoc.stripe.plan = 'free_none';
+			if (
+				body.subscriptions &&
+				body.subscriptions.data &&
+				body.subscriptions.data.length
+			) {
+				userDoc.stripe.subscriptionId = body.subscriptions.data[0].id;
+				userDoc.stripe.plan = body.subscriptions.data[0].plan.id;
+			}
 
 			logger.log( 'customer create' );
 			logger.log( userDoc, body );
@@ -418,10 +425,6 @@ function stripeUpdateSubscription( stripe, hoodie, userDoc, request, logger ) {
 			return reject( Boom.forbidden(
 				'Cannot update subscription: user isn\'t a customer.') );
 		}
-		if ( !customer || !customer.subscriptionId ) {
-			return reject( Boom.forbidden(
-				'Cannot update subscription: user has no subscription.') );
-		}
 
 		var whitelist = [
 				'plan',
@@ -436,22 +439,33 @@ function stripeUpdateSubscription( stripe, hoodie, userDoc, request, logger ) {
 			_.pick(requestData, function( value, key ) {
 				return _.includes( whitelist, key );
 			}));
-
-		stripe.customers.updateSubscription(
-			customer.customerId,
-			customer.subscriptionId,
-			params,
-			function( error, body ) {
-				if ( error ) {
-					return reject( error );
-				}
-
-				userDoc.stripe.plan = body.plan.id;
-
-				logger.log( body );
-				return resolve( userDoc, body );
+		var callback = function( error, body ) {
+			if ( error ) {
+				return reject( error );
 			}
-		);
+
+			userDoc.stripe.subscriptionId = body.id;
+			userDoc.stripe.plan = body.plan.id;
+
+			logger.log( body );
+			return resolve( userDoc, body );
+		};
+
+		if ( customer.subscriptionId ) {
+			stripe.customers.updateSubscription(
+				customer.customerId,
+				customer.subscriptionId,
+				params,
+				callback
+			);
+		}
+		else {
+			stripe.customers.createSubscription(
+				customer.customerId,
+				params,
+				callback
+			);
+		}
 	});
 }
 
