@@ -5,6 +5,8 @@ var utils = require('../../lib/utils');
 var Boom = require('boom');
 var _ = require('lodash');
 
+// var euCountries;
+
 // TODO:
 // - appeler Taxamo que quand il y a une create subscription
 // - etre sur que je transmet bien les rapports d'erreur de Taxamo et Stripe
@@ -68,35 +70,39 @@ function handleCustomerRequest( hoodie, request, reply ) {
 
 	// and longer ones for other methods
 	Promise.all(promises)
-		.then(function( results ) {
-			var nextDoc = results[0];
-			var token = results[1];
-
-			if ( hoodie.config.get('taxamoKey') && token && token.card ) {
-				return taxamoTransactionCreate(
-						stripe, hoodie, results, request, logger
-					)
-					.then(function( taxamo ) {
-						nextDoc.taxamo = taxamo;
-
-						// There's a special option to only accept plans priced
-						// in euro for EU customers.
-						if (
-							hoodie.config.get('euroInEU') &&
-							taxamo['tax_region'] === 'EU' &&
-							requestData['currency_code'] !== 'EUR'
-						) {
-							throw Boom.forbidden(
-								'European customers must choose a plan in euro.'
-							);
-						}
-
-						return nextDoc;
-					});
-			}
-
-			return nextDoc;
-		})
+		// .then(function( results ) {
+		// 	var nextDoc = results[0];
+		// 	var token = results[1];
+		//
+		// 	if (
+		// 		hoodie.config.get('taxamoKey') &&
+		// 		token && token.card &&
+		// 		!nextDoc.taxamo
+		// 	) {
+		// 		return taxamoTransactionCreate(
+		// 				stripe, hoodie, results, request, logger
+		// 			)
+		// 			.then(function( taxamo ) {
+		// 				nextDoc.taxamo = taxamo;
+		//
+		// 				// There's a special option to only accept plans priced
+		// 				// in euro for EU customers.
+		// 				if (
+		// 					hoodie.config.get('euroInEU') &&
+		// 					taxamo['tax_region'] === 'EU' &&
+		// 					requestData['currency_code'] !== 'EUR'
+		// 				) {
+		// 					throw Boom.forbidden(
+		// 						'European customers must choose a plan in euro.'
+		// 					);
+		// 				}
+		//
+		// 				return nextDoc;
+		// 			});
+		// 	}
+		//
+		// 	return nextDoc;
+		// })
 		.then(function(nextDoc) {
 			if ( requestMethod === 'customers.create' ) {
 				return stripeCustomerCreate(
