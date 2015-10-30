@@ -5,6 +5,10 @@ var utils = require('../../lib/utils');
 var Boom = require('boom');
 var _ = require('lodash');
 
+// TODO:
+// - appeler Taxamo que quand il y a une create subscription
+// - etre sur que je transmet bien les rapports d'erreur de Taxamo et Stripe
+
 // things that bit us with chrome logger:
 // - it adds properties to logged objects
 // - all external request need to have a timeout, or logs might never come
@@ -330,6 +334,7 @@ function stripeCustomerCreate( stripe, hoodie, userDoc, request, logger ) {
 				'source',
 				'plan',
 				'coupon',
+				'email',
 			];
 		// mix following object with whitelisted properties from requestData
 		var params = _.assign({
@@ -444,18 +449,29 @@ function stripeUpdateSubscription( stripe, hoodie, userDoc, request, logger ) {
 				return reject( error );
 			}
 
-			userDoc.stripe.subscriptionId = body.id;
-			userDoc.stripe.plan = body.plan.id;
+			userDoc.stripe.subscriptionId = body.status === 'canceled' ?
+				undefined :
+				body.id;
+			userDoc.stripe.plan = body.status === 'canceled' ?
+				'free_none' :
+				body.plan.id;
 
 			logger.log( body );
 			return resolve( userDoc, body );
 		};
 
-		if ( customer.subscriptionId ) {
+		if ( customer.subscriptionId && requestData.plan ) {
 			stripe.customers.updateSubscription(
 				customer.customerId,
 				customer.subscriptionId,
 				params,
+				callback
+			);
+		}
+		else if ( customer.subscriptionId && !requestData.plan ) {
+			stripe.customers.cancelSubscription(
+				customer.customerId,
+				customer.subscriptionId,
 				callback
 			);
 		}
