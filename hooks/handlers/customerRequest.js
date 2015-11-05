@@ -72,34 +72,34 @@ function handleCustomerRequest( hoodie, request, reply ) {
 	Promise.all(promises)
 		.then(function( results ) {
 			var nextDoc = results[0];
-			// var token = results[1];
-			//
-			// if (
-			// 	hoodie.config.get('taxamoKey') &&
-			// 	token && token.card &&
-			// 	!nextDoc.taxamo
-			// ) {
-			// 	return taxamoTransactionCreate(
-			// 			stripe, hoodie, results, request, logger
-			// 		)
-			// 		.then(function( taxamo ) {
-			// 			nextDoc.taxamo = taxamo;
-			//
-			// 			// There's a special option to only accept plans priced
-			// 			// in euro for EU customers.
-			// 			if (
-			// 				hoodie.config.get('euroInEU') &&
-			// 				taxamo['tax_region'] === 'EU' &&
-			// 				requestData['currency_code'] !== 'EUR'
-			// 			) {
-			// 				throw Boom.forbidden(
-			// 					'European customers must choose a plan in euro.'
-			// 				);
-			// 			}
-			//
-			// 			return nextDoc;
-			// 		});
-			// }
+			var token = results[1];
+
+			if (
+				hoodie.config.get('taxamoKey') &&
+				token && token.card &&
+				!nextDoc.taxamo
+			) {
+				return taxamoTransactionCreate(
+						stripe, hoodie, results, request, logger
+					)
+					.then(function( taxamo ) {
+						nextDoc.taxamo = taxamo;
+
+						// There's a special option to only accept plans priced
+						// in euro for EU customers.
+						if (
+							hoodie.config.get('euroInEU') &&
+							taxamo['tax_region'] === 'EU' &&
+							requestData['currency_code'] !== 'EUR'
+						) {
+							throw Boom.forbidden(
+								'European customers must choose a plan in euro.'
+							);
+						}
+
+						return nextDoc;
+					});
+			}
 
 			return nextDoc;
 		})
@@ -345,9 +345,6 @@ function stripeCustomerCreate( stripe, hoodie, userDoc, request, logger ) {
 		// mix following object with whitelisted properties from requestData
 		var params = _.assign({
 				'description': 'Customer for ' + userDoc.name.split('/')[1],
-				'tax_percent': !taxamo || config.get('universalPricing') ?
-					0 :
-					taxamo['tax_rate'],
 				'metadata': {
 					'hoodieId': userDoc.id,
 					'taxamo_transaction_key': taxamo && taxamo.key,
@@ -356,6 +353,12 @@ function stripeCustomerCreate( stripe, hoodie, userDoc, request, logger ) {
 			_.pick(requestData, function( value, key ) {
 				return _.includes( whitelist, key );
 			}));
+
+		if ( params.plan ) {
+			params['tax_percent'] = !taxamo || config.get('universalPricing') ?
+				0 :
+				taxamo['tax_rate']
+		}
 
 		stripe.customers.create( params, function( error, body ) {
 			if ( error ) {
@@ -442,14 +445,17 @@ function stripeUpdateSubscription( stripe, hoodie, userDoc, request, logger ) {
 				'coupon',
 			];
 		// mix following object with whitelisted properties from requestData
-		var params = _.assign({
-				'tax_percent': !taxamo || config.get('universalPricing') ?
-					0 :
-					taxamo['tax_rate'],
-			},
+		var params = _.assign({},
 			_.pick(requestData, function( value, key ) {
 				return _.includes( whitelist, key );
 			}));
+
+		if ( params.plan ) {
+			params['tax_percent'] = !taxamo || config.get('universalPricing') ?
+				0 :
+				taxamo['tax_rate']
+		}
+
 		var callback = function( error, body ) {
 			if ( error ) {
 				return reject( error );
