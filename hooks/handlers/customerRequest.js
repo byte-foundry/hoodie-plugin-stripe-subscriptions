@@ -125,8 +125,11 @@ function handleCustomerRequest( hoodie, request, reply ) {
 				// when a source is provided, because a new taxamo transaction
 				// has been created and it must appear in the metadata of the
 				// Stripe customer.
-				( requestMethod === 'customers.updateSubscription' &&
-				requestData.source )
+				(
+					hoodie.config.get('taxamoKey') &&
+					requestMethod === 'customers.updateSubscription' &&
+					requestData.source
+				)
 			) {
 				return stripeCustomerUpdate(
 					stripe, hoodie, nextDoc, request, logger );
@@ -243,6 +246,7 @@ function taxamoTransactionCreate( stripe, hoodie, results, request, logger ) {
 	var token = results[1];
 	var whitelist = [
 		'buyer_credit_card_prefix',
+		'buyer_name',
 		'buyer_email',
 		'buyer_tax_number',
 		'invoice_address',
