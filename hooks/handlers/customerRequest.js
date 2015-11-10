@@ -58,16 +58,20 @@ function handleCustomerRequest( hoodie, request, reply ) {
 			.then(function( customer ) {
 				// Note: we send the content of the whole customer object stored
 				// in Stripe. There shouldn't be any confidential info in there.
-				return reply( null, customer );
+				reply( null, customer );
 			})
 			.catch(function( error ) {
 				logger.error(error, error.stack);
-				// include error details in the payload
-				if ( error.data ) {
-					error.output.payload.details = error.data;
+
+				if ( error.isBoom ) {
+					// include error details in the payload
+					if ( error.data ) {
+						error.output.payload.details = error.data;
+					}
+					// Hoodie uses error.reason as the message ¯\_(ツ)_/¯
+					error.output.payload.reason = error.message;
 				}
-				// Hoodie is using the reason property of the response ¯\_(ツ)_/¯
-				error.output.payload.reason = error.message;
+
 				return reply( error );
 			});
 	}
@@ -151,12 +155,16 @@ function handleCustomerRequest( hoodie, request, reply ) {
 		})
 		.catch(function( error ) {
 			logger.error(error, error.stack);
-			// include error details in the payload
-			if ( error.data ) {
-				error.output.payload.details = error.data;
+
+			if ( error.isBoom ) {
+				// include error details in the payload
+				if ( error.data ) {
+					error.output.payload.details = error.data;
+				}
+				// Hoodie uses error.reason as the message ¯\_(ツ)_/¯
+				error.output.payload.reason = error.message;
 			}
-			// Hoodie is using the reason property of the response ¯\_(ツ)_/¯
-			error.output.payload.reason = error.message;
+
 			return reply( error );
 		});
 }
@@ -258,6 +266,11 @@ function taxamoTransactionCreate( stripe, hoodie, results, request, logger ) {
 			return _.includes( whitelist, key );
 		}));
 
+	// the userDoc.id might be the
+	if ( !transaction['buyer_email'] && /^[\S]+@[\S]+$/.test(userDoc.id) ) {
+		transaction['buyer_email'] = userDoc.id;
+	}
+
 	if (
 		!requestData['buyer_tax_number'] &&
 		hoodie.config.get('universalPricing')
@@ -339,7 +352,7 @@ function stripeCustomerRetrieve( stripe, hoodie, userDoc, request, logger ) {
 					]( error.message, error ));
 			}
 
-			if ( requestData.includePayments === true ) {
+			if ( requestData && requestData.includePayments === true ) {
 				stripe.charges.list(
 					{
 						customer: customer.customerId,

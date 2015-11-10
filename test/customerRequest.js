@@ -122,18 +122,17 @@ describe('customerRequest', function() {
 				});
 		});
 
-		it.only('should relay a meaningful Taxamo error', function(done) {
+		it('should relay a meaningful Taxamo error', function(done) {
 			this.timeout(2000);
 
 			hoodie.stripe.customers.create({
 					'plan': 'hoodie_test1_USD_taxfree',
 					'source': token.id,
-					'buyer_tax_number': 'zob',
+					'buyer_credit_card_prefix': 'zob',
 				})
-				.fail(function(error) {
+				.fail(function(error) {console.log(error);
 					expect(error.statusCode).to.equal(400);
-					expect(error.message).to.equal(
-						'This customer has no attached payment source');
+					expect(error.message).to.equal('Bad Request');
 					done();
 				});
 		});
@@ -184,6 +183,22 @@ describe('customerRequest', function() {
 					.then(function(body) {
 						expect(body.userCtx.roles)
 							.include('stripe:plan:hoodie_test2_USD_taxfree');
+						done();
+					})
+					.catch(function( error ) {
+						console.log(error);
+					});
+			}
+		);
+
+		it('can retrieve the Stripe user that was created',
+			function(done) {
+				this.timeout(3000);
+
+				hoodie.stripe.customers.retrieve()
+					.then(function(customer) {console.log(customer);
+						// expect(body.userCtx.roles)
+						// 	.include('stripe:plan:hoodie_test2_USD_taxfree');
 						done();
 					})
 					.catch(function( error ) {
