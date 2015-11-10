@@ -78,7 +78,7 @@ describe('customerRequest', function() {
 
 	it('should reply an error when user isn\'t logged in', function(done) {
 		hoodie.stripe.customers.create()
-			.catch(function(error) {console.log(error);
+			.catch(function(error) {
 				expect(error.statusCode).to.equal(401);
 				done();
 			});
@@ -108,6 +108,34 @@ describe('customerRequest', function() {
 				token = _token;
 				done();
 			});
+		});
+
+		it('should relay a meaningful Stripe error', function(done) {
+			hoodie.stripe.customers.create({
+					'plan': 'hoodie_test1_USD_taxfree',
+				})
+				.fail(function(error) {
+					expect(error.statusCode).to.equal(400);
+					expect(error.message).to.equal(
+						'This customer has no attached payment source');
+					done();
+				});
+		});
+
+		it.only('should relay a meaningful Taxamo error', function(done) {
+			this.timeout(2000);
+
+			hoodie.stripe.customers.create({
+					'plan': 'hoodie_test1_USD_taxfree',
+					'source': token.id,
+					'buyer_tax_number': 'zob',
+				})
+				.fail(function(error) {
+					expect(error.statusCode).to.equal(400);
+					expect(error.message).to.equal(
+						'This customer has no attached payment source');
+					done();
+				});
 		});
 
 		it('can create a customer and subscribe to a paid plan',

@@ -73,7 +73,7 @@ module.exports = function( hoodie ) {
 
 			} catch (error) {
 				request.raw.res.chrome.error(error, error.stack);
-				reply();
+				reply( error );
 			}
 		},
 	};

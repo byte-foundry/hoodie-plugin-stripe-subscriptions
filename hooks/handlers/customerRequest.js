@@ -5,11 +5,9 @@ var utils = require('../../lib/utils');
 var Boom = require('boom');
 var _ = require('lodash');
 
-// var euCountries;
-
 // TODO:
-// - appeler Taxamo que quand il y a une create subscription
 // - etre sur que je transmet bien les rapports d'erreur de Taxamo et Stripe
+// - pouvoir mettre à jour l'adresse d'invoice
 
 // things that bit us with chrome logger:
 // - it adds properties to logged objects
@@ -64,6 +62,12 @@ function handleCustomerRequest( hoodie, request, reply ) {
 			})
 			.catch(function( error ) {
 				logger.error(error, error.stack);
+				// include error details in the payload
+				if ( error.data ) {
+					error.output.payload.details = error.data;
+				}
+				// Hoodie is using the reason property of the response ¯\_(ツ)_/¯
+				error.output.payload.reason = error.message;
 				return reply( error );
 			});
 	}
@@ -147,6 +151,12 @@ function handleCustomerRequest( hoodie, request, reply ) {
 		})
 		.catch(function( error ) {
 			logger.error(error, error.stack);
+			// include error details in the payload
+			if ( error.data ) {
+				error.output.payload.details = error.data;
+			}
+			// Hoodie is using the reason property of the response ¯\_(ツ)_/¯
+			error.output.payload.reason = error.message;
 			return reply( error );
 		});
 }
@@ -206,7 +216,11 @@ function stripeRetrieveToken( stripe, hoodie, source, request, logger ) {
 	return new Promise(function(resolve, reject) {
 		stripe.tokens.retrieve( source, function( error, token ) {
 			if ( error ) {
-				return reject( error );
+				return reject(
+					Boom[ error.type === 'StripeInvalidRequest' ?
+						'badRequest' :
+						'badImplementation'
+					]( error.message, error ));
 			}
 
 			logger.log( token );
@@ -220,10 +234,10 @@ function taxamoTransactionCreate( stripe, hoodie, results, request, logger ) {
 	var userDoc = results[0];
 	var token = results[1];
 	var whitelist = [
-		'currency_code',
 		'buyer_credit_card_prefix',
 		'buyer_email',
 		'buyer_tax_number',
+		'invoice_address',
 	];
 	// mix following object with whitelisted properties from requestData
 	var transaction = _.assign({
@@ -233,6 +247,7 @@ function taxamoTransactionCreate( stripe, hoodie, results, request, logger ) {
 					'amount': 0,
 				},
 			],
+			// the currency code of the placeholder transaction is irrelevant
 			'currency_code': 'USD',
 			'description': 'placeholder transaction',
 			'status': 'C',
@@ -298,16 +313,16 @@ function taxamoTransactionCreate( stripe, hoodie, results, request, logger ) {
 				'tax_country_code': transaction['tax_country_code'],
 				'tax_deducted': transaction['tax_deducted'],
 				'billing_country_code': transaction['billing_country_code'],
-				'currency_code': transaction['currency_code'],
 			};
 
-			logger.log( taxamo );
+			logger.log( transaction, taxamo );
 			return taxamo;
 		});
 }
 
 function stripeCustomerRetrieve( stripe, hoodie, userDoc, request, logger ) {
 	return new Promise(function(resolve, reject) {
+		var requestData = request.payload.args[0];
 		var customer = userDoc.stripe;
 
 		if ( !customer || !customer.customerId ) {
@@ -317,16 +332,44 @@ function stripeCustomerRetrieve( stripe, hoodie, userDoc, request, logger ) {
 
 		stripe.customers.retrieve(customer.customerId, function( error, body ) {
 			if ( error ) {
-				return reject( error );
+				return reject(
+					Boom[ error.type === 'StripeInvalidRequest' ?
+						'badRequest' :
+						'badImplementation'
+					]( error.message, error ));
 			}
 
-			logger.log( body );
-			return resolve( body );
+			if ( requestData.includePayments === true ) {
+				stripe.charges.list(
+					{
+						customer: customer.customerId,
+						limit: 12,
+					},
+					function( error, charges ) {
+						if ( error ) {
+							return reject(
+								Boom[ error.type === 'StripeInvalidRequest' ?
+									'badRequest' :
+									'badImplementation'
+								]( error.message, error ));
+						}
+
+						body.charges = charges;
+
+						logger.log( body );
+						return resolve( body );
+					}
+				);
+			}
+			else {
+				logger.log( body );
+				return resolve( body );
+			}
 		});
 	});
 }
 
-function stripeCustomerCreate( stripe, hoodie, userDoc, request, logger ) {
+function stripeCustomerCreate( stripe, hoodie, userDoc, request ) {
 	return new Promise(function(resolve, reject) {
 		if ( userDoc.stripe && userDoc.stripe.customerId ) {
 			return reject( Boom.forbidden(
@@ -362,7 +405,11 @@ function stripeCustomerCreate( stripe, hoodie, userDoc, request, logger ) {
 
 		stripe.customers.create( params, function( error, body ) {
 			if ( error ) {
-				return reject( error );
+				return reject(
+					Boom[ error.type === 'StripeInvalidRequest' ?
+						'badRequest' :
+						'badImplementation'
+					]( error.message, error ));
 			}
 
 			userDoc.stripe.customerId = body.id;
@@ -376,8 +423,6 @@ function stripeCustomerCreate( stripe, hoodie, userDoc, request, logger ) {
 				userDoc.stripe.plan = body.subscriptions.data[0].plan.id;
 			}
 
-			logger.log( 'customer create' );
-			logger.log( userDoc, body );
 			return resolve( userDoc );
 		});
 
@@ -417,7 +462,11 @@ function stripeCustomerUpdate( stripe, hoodie, userDoc, request, logger ) {
 		stripe.customers.update( customer.customerId, params,
 			function( error, body ) {
 				if ( error ) {
-					return reject( error );
+					return reject(
+						Boom[ error.type === 'StripeInvalidRequest' ?
+							'badRequest' :
+							'badImplementation'
+						]( error.message, error ));
 				}
 
 				logger.log( body );
@@ -458,7 +507,11 @@ function stripeUpdateSubscription( stripe, hoodie, userDoc, request, logger ) {
 
 		var callback = function( error, body ) {
 			if ( error ) {
-				return reject( error );
+				return reject(
+					Boom[ error.type === 'StripeInvalidRequest' ?
+						'badRequest' :
+						'badImplementation'
+					]( error.message, error ));
 			}
 
 			userDoc.stripe.subscriptionId = body.status === 'canceled' ?

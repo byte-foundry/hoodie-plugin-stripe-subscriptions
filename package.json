@@ -34,6 +34,7 @@
     "jquery-ajax": "^2.1.4",
     "jscs": "^2.1.1",
     "mocha": "^2.3.3",
+    "newrelic": "^1.23.1",
     "xmlhttprequest": "^1.7.0"
   },
   "license": "MIT"
