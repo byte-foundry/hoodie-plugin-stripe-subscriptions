@@ -195,10 +195,14 @@ describe('customerRequest', function() {
 			function(done) {
 				this.timeout(3000);
 
-				hoodie.stripe.customers.retrieve()
-					.then(function(customer) {console.log(customer);
-						// expect(body.userCtx.roles)
-						// 	.include('stripe:plan:hoodie_test2_USD_taxfree');
+				hoodie.stripe.customers.retrieve({
+						includeCharges: true,
+					})
+					.then(function(customer) {
+						expect(customer.object)
+							.to.equal('customer');
+						expect(customer.charges.data)
+							.to.be.an.instanceof(Array);
 						done();
 					})
 					.catch(function( error ) {

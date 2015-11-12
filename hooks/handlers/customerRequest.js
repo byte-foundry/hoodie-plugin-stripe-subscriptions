@@ -356,7 +356,7 @@ function stripeCustomerRetrieve( stripe, hoodie, userDoc, request, logger ) {
 					]( error.message, error ));
 			}
 
-			if ( requestData && requestData.includePayments === true ) {
+			if ( requestData && requestData.includeCharges === true ) {
 				stripe.charges.list(
 					{
 						customer: customer.customerId,
