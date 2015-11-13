@@ -367,6 +367,8 @@ function stripeInvoicesRetrieveUpcoming( stripe, hoodie, userDoc, request ) {
 				'subscription_plan',
 				'subscription_quantity',
 				'subscription_trial_end',
+				'coupon',
+				'subscription_coupon',
 			];
 		// mix following object with whitelisted properties from requestData
 		var params = _.assign({
