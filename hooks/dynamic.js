@@ -20,10 +20,12 @@
 	that is also available in worker.js, with access to the database,
 	and other convenience libraries.
 */
+var Boom = require('boom');
+var chromelogger = require('chromelogger');
+
 var handlePingRequest = require('./handlers/pingRequest');
 var handleCustomerRequest = require('./handlers/customerRequest');
 var handleWebhooksRequest = require('./handlers/webhooksRequest');
-var chromelogger = require('chromelogger');
 
 var chrome;
 
@@ -59,13 +61,42 @@ module.exports = function( hoodie ) {
 
 			try {
 
-				if ( request.payload && request.payload.method &&
-						request.payload.method === 'ping' ) {
+				if (
+					request.payload && request.payload.method &&
+					request.payload.method === 'ping'
+				) {
 					handlePingRequest( hoodie, request, reply );
 				}
-				else if ( request.payload && request.payload.method &&
-						request.payload.method.indexOf('customers.') === 0 ) {
-					handleCustomerRequest( hoodie, request, reply );
+				else if (
+					request.payload && request.payload.method &&
+					/^(customers|invoices)\./.test(request.payload.method)
+				) {
+					if ( request.method !== 'post' ) {
+						return reply( Boom.methodNotAllowed() );
+					}
+
+					if ( !hoodie.config.get('stripeKey') ) {
+						return reply(
+							Boom.expectationFailed( 'Stripe key not configured')
+						);
+					}
+
+					handleCustomerRequest( hoodie, request )
+						.then(function( response ) {
+							reply( null, response );
+						})
+						.catch(function( error ) {
+							if ( error.isBoom ) {
+								// include error details in the payload
+								if ( error.data ) {
+									error.output.payload.details = error.data;
+								}
+								// Hoodie uses error.reason as the message :-/
+								error.output.payload.reason = error.message;
+							}
+
+							return reply( error );
+						});
 				}
 				else {
 					handleWebhooksRequest( hoodie, request, reply );

@@ -265,6 +265,21 @@ describe('customerRequest', function() {
 			}
 		);
 
+		it('can retrieve an upcoming invoice', function(done) {
+			this.timeout(5000);
+
+			hoodie.stripe.invoices.retrieveUpcoming({
+					'subscription_plan': 'hoodie_test2_USD_taxfree',
+				})
+				.then(function(body) {
+					expect(body['amount_due']).to.be.a('number');
+					done();
+				})
+				.catch(function( error ) {
+					console.log(error);
+				});
+		});
+
 		it('can update a customer and upgrade to a paid plan',
 			function(done) {
 				this.timeout(5000);
