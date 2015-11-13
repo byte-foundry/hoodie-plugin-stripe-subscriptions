@@ -20,6 +20,9 @@ function stripeAPI(hoodie) {
 			retrieve: requester('customers.retrieve'),
 			updateSubscription: requester('customers.updateSubscription'),
 		},
+		invoices: {
+			retrieveUpcoming: requester('invoices.retrieveUpcoming'),
+		},
 	};
 
 	function requester( method ) {

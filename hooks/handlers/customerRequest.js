@@ -13,16 +13,9 @@ var _ = require('lodash');
 // - it adds properties to logged objects
 // - all external request need to have a timeout, or logs might never come
 // - it's easy to exceed the maximum headers size when you log too much
-function handleCustomerRequest( hoodie, request, reply ) {
+function handleCustomerRequest( hoodie, request ) {
 	var logger = request.raw.res.chrome;
 
-	if ( request.method !== 'post' ) {
-		return reply( Boom.methodNotAllowed() );
-	}
-
-	if ( !hoodie.config.get('stripeKey') ) {
-		return reply( Boom.expectationFailed( 'Stripe key not configured') );
-	}
 	var stripe = Stripe( hoodie.config.get('stripeKey') );
 
 	var requestMethod = request.payload.method;
@@ -48,36 +41,30 @@ function handleCustomerRequest( hoodie, request, reply ) {
 		);
 	}
 
-	// There's a short path for 'customers.retrieve'
+	// short path for 'customers.retrieve'
 	if ( requestMethod === 'customers.retrieve' ) {
 		return promises[0]
 			.then(function( nextDoc ) {
 				return stripeCustomerRetrieve(
 					stripe, hoodie, nextDoc, request, logger );
-			})
-			.then(function( customer ) {
-				// Note: we send the content of the whole customer object stored
-				// in Stripe. There shouldn't be any confidential info in there.
-				reply( null, customer );
-			})
-			.catch(function( error ) {
-				logger.error(error, error.stack);
-
-				if ( error.isBoom ) {
-					// include error details in the payload
-					if ( error.data ) {
-						error.output.payload.details = error.data;
-					}
-					// Hoodie uses error.reason as the message ¯\_(ツ)_/¯
-					error.output.payload.reason = error.message;
-				}
-
-				return reply( error );
 			});
+		// Note: we send the content of the whole customer object stored
+		// in Stripe. There shouldn't be any confidential info in there.
 	}
 
-	// and longer ones for other methods
-	Promise.all(promises)
+	// short path for 'invoices.retrieveUpcoming'
+	if ( requestMethod === 'invoices.retrieveUpcoming' ) {
+		return promises[0]
+			.then(function( nextDoc ) {
+				return stripeInvoicesRetrieveUpcoming(
+					stripe, hoodie, nextDoc, request, logger );
+			});
+		// Note: we send the content of the whole customer object stored
+		// in Stripe. There shouldn't be any confidential info in there.
+	}
+
+	// longer path for other methods
+	return Promise.all(promises)
 		.then(function( results ) {
 			var nextDoc = results[0];
 			var token = results[1];
@@ -151,24 +138,10 @@ function handleCustomerRequest( hoodie, request, reply ) {
 			return updateAccount( stripe, hoodie, nextDoc, request, logger );
 		})
 		.then(function(nextDoc) {
-			return reply( null, {
+			return {
 				plan: nextDoc.stripe.plan,
 				authorization: request.headers.authorization,
-			});
-		})
-		.catch(function( error ) {
-			logger.error(error, error.stack);
-
-			if ( error.isBoom ) {
-				// include error details in the payload
-				if ( error.data ) {
-					error.output.payload.details = error.data;
-				}
-				// Hoodie uses error.reason as the message ¯\_(ツ)_/¯
-				error.output.payload.reason = error.message;
-			}
-
-			return reply( error );
+			};
 		});
 }
 
@@ -383,6 +356,53 @@ function stripeCustomerRetrieve( stripe, hoodie, userDoc, request, logger ) {
 				return resolve( body );
 			}
 		});
+	});
+}
+
+function stripeInvoicesRetrieveUpcoming( stripe, hoodie, userDoc, request ) {
+	return new Promise(function(resolve, reject) {
+		var requestData = request.payload.args[0];
+		var customer = userDoc.stripe;
+		var whitelist = [
+				'subscription_plan',
+				'subscription_quantity',
+				'subscription_trial_end',
+			];
+		// mix following object with whitelisted properties from requestData
+		var params = _.assign({
+				'subscription_prorate': true,
+			},
+			_.pick(requestData, function( value, key ) {
+				return _.includes( whitelist, key );
+			}));
+
+		var callback = function( error, upcoming ) {
+			if ( error ) {
+				return reject(
+					Boom[ error.type === 'StripeInvalidRequest' ?
+						'badRequest' :
+						'badImplementation'
+					]( error.message, error ));
+			}
+
+			return resolve( upcoming );
+		};
+
+		if ( customer && customer.subscriptionId ) {
+			stripe.invoices.retrieveUpcoming(
+				customer.customerId,
+				customer.subscriptionId,
+				params,
+				callback
+			);
+		}
+		else {
+			stripe.invoices.retrieveUpcoming(
+				customer.customerId,
+				params,
+				callback
+			);
+		}
 	});
 }
 
