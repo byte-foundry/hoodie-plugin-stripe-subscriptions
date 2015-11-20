@@ -21,7 +21,6 @@ if ( typeof require !== 'undefined' ) {
 	};
 }
 
-/* eslint-disable no-console */
 function randomSignUpIn() {
 	var username = 'u' + Math.round( Math.random() * 1E9 );
 	var password = 'p' + Math.round( Math.random() * 1E9 );
@@ -93,7 +92,7 @@ describe('customerRequest', function() {
 					done();
 				})
 				.catch(function( error ) {
-					console.log(error);
+					done(error);
 				});
 			});
 
@@ -130,7 +129,7 @@ describe('customerRequest', function() {
 					'source': token.id,
 					'buyer_credit_card_prefix': 'zob',
 				})
-				.fail(function(error) {console.log(error);
+				.fail(function(error) {
 					expect(error.statusCode).to.equal(400);
 					expect(error.message).to.equal('Bad Request');
 					done();
@@ -153,7 +152,7 @@ describe('customerRequest', function() {
 					done();
 				})
 				.catch(function( error ) {
-					console.log(error);
+					done(error);
 				});
 			}
 		);
@@ -162,7 +161,7 @@ describe('customerRequest', function() {
 			function(done) {
 				this.timeout(5000);
 
-				hoodie.stripe.customers.updateSubscription({
+				hoodie.stripe.customers.update({
 						plan: 'hoodie_test2_USD_taxfree',
 					})
 					.then(function(body) {
@@ -170,14 +169,14 @@ describe('customerRequest', function() {
 						done();
 					})
 					.catch(function( error ) {
-						console.log(error);
+						done(error);
 					});
 			}
 		);
 
 		it('stores information about the plan the user is subscribed to',
 			function(done) {
-				this.timeout(3000);
+				this.timeout(5000);
 
 				hoodie.request('get', '/_session')
 					.then(function(body) {
@@ -186,14 +185,14 @@ describe('customerRequest', function() {
 						done();
 					})
 					.catch(function( error ) {
-						console.log(error);
+						done(error);
 					});
 			}
 		);
 
 		it('can retrieve the Stripe user that was created',
 			function(done) {
-				this.timeout(3000);
+				this.timeout(5000);
 
 				hoodie.stripe.customers.retrieve({
 						includeCharges: true,
@@ -206,7 +205,7 @@ describe('customerRequest', function() {
 						done();
 					})
 					.catch(function( error ) {
-						console.log(error);
+						done(error);
 					});
 			}
 		);
@@ -233,7 +232,7 @@ describe('customerRequest', function() {
 					done();
 				})
 				.catch(function( error ) {
-					console.log(error);
+					done(error);
 				});
 			});
 
@@ -256,11 +255,11 @@ describe('customerRequest', function() {
 
 				hoodie.stripe.customers.create({})
 				.then(function(body) {
-					expect(body.plan).to.equal('free_none');
+					expect(body.plan).to.equal('');
 					done();
 				})
 				.catch(function( error ) {
-					console.log(error);
+					done(error);
 				});
 			}
 		);
@@ -276,7 +275,7 @@ describe('customerRequest', function() {
 					done();
 				})
 				.catch(function( error ) {
-					console.log(error);
+					done(error);
 				});
 		});
 
@@ -284,7 +283,7 @@ describe('customerRequest', function() {
 			function(done) {
 				this.timeout(5000);
 
-				hoodie.stripe.customers.updateSubscription({
+				hoodie.stripe.customers.update({
 						source: token.id,
 						plan: 'hoodie_test2_USD_taxfree',
 						'buyer_tax_number': undefined,
@@ -296,7 +295,7 @@ describe('customerRequest', function() {
 						done();
 					})
 					.catch(function( error ) {
-						console.log(error);
+						done(error);
 					});
 			}
 		);
@@ -312,7 +311,7 @@ describe('customerRequest', function() {
 						done();
 					})
 					.catch(function( error ) {
-						console.log(error);
+						done(error);
 					});
 			}
 		);
