@@ -20,14 +20,24 @@
 	that is also available in worker.js, with access to the database,
 	and other convenience libraries.
 */
-var Boom = require('boom');
+var Stripe = require('stripe');
 var chromelogger = require('chromelogger');
 
-var handlePingRequest = require('./handlers/pingRequest');
-var handleCustomerRequest = require('./handlers/customerRequest');
-var handleWebhooksRequest = require('./handlers/webhooksRequest');
+var webhooksRequestHandler = require('./handlers/webhooksRequest');
+var customersRetrieveHandler = require('./handlers/customersRetrieve');
+var customersUpdateHandler = require('./handlers/customersUpdate');
+var invoicesRetrieveUpcomingHandler =
+	require('./handlers/invoicesRetrieveUpcoming');
 
 var chrome;
+
+var handlers = {
+	'invoices.retrieveUpcoming': invoicesRetrieveUpcomingHandler,
+	'customers.retrieve': customersRetrieveHandler,
+	'customers.create': customersUpdateHandler,
+	'customers.update': customersUpdateHandler,
+	'customers.updateSubscription': customersUpdateHandler,
+};
 
 module.exports = function( hoodie ) {
 	return {
@@ -59,54 +69,32 @@ module.exports = function( hoodie ) {
 				chromelogger.middleware( null, request.raw.res ) :
 				request.raw.res.chrome = chrome;
 
-			try {
+			var context = {
+				hoodie: hoodie,
+				request: request,
+				reply: reply,
+				log: request.raw.res.chrome.log,
+				method: request.payload && request.payload.method,
+				args: request.payload && request.payload.args,
+				userDoc: {},
+			};
 
-				if (
-					request.payload && request.payload.method &&
-					request.payload.method === 'ping'
-				) {
-					handlePingRequest( hoodie, request, reply );
-				}
-				else if (
-					request.payload && request.payload.method &&
-					/^(customers|invoices)\./.test(request.payload.method)
-				) {
-					if ( request.method !== 'post' ) {
-						return reply( Boom.methodNotAllowed() );
-					}
+			if ( hoodie.config.get('stripeKey') ) {
+				context.stripe = Stripe( hoodie.config.get('stripeKey') );
+			}
 
-					if ( !hoodie.config.get('stripeKey') ) {
-						return reply(
-							Boom.expectationFailed( 'Stripe key not configured')
-						);
-					}
-
-					handleCustomerRequest( hoodie, request )
-						.then(function( response ) {
-							reply( null, response );
-						})
-						.catch(function( error ) {
-							if ( error.isBoom ) {
-								// include error details in the payload
-								if ( error.data ) {
-									error.output.payload.details = error.data;
-								}
-								// Hoodie uses error.reason as the message :-/
-								error.output.payload.reason = error.message;
-							}
-
-							return reply( error );
-						});
-				}
-				else {
-					handleWebhooksRequest( hoodie, request, reply );
-				}
-
-			} catch (error) {
-				request.raw.res.chrome.error(error, error.stack);
-				reply( error );
+			if ( context.method ) {
+				handlers[ context.method ]( context );
+			}
+			else {
+				webhooksRequestHandler( hoodie, request, reply );
 			}
 		},
+		// We used to have 'plugin.user.confirm' hook here, but it's not very
+		// convenient because user confirmation happens in the background.
+		// This means there's no error reporting and other customer requests
+		// might arrive before the stripe user is properly created or
+		// before its userDoc is updated.
 	};
 };
 

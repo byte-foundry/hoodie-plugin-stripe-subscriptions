@@ -1,23 +1,11 @@
 function stripeAPI(hoodie) {
 	return hoodie.stripe = {
 		apiUrl: '/_plugins/stripe-subscriptions/_api',
-		ping: function( data ) {
-			return hoodie.request('post', hoodie.stripe.apiUrl, {
-					contentType: 'application/json',
-					dataType: 'json',
-					xhrFields: {
-						withCredentials: false,
-					},
-					data: JSON.stringify({
-						method: 'ping',
-						data: data,
-					}),
-				});
-		},
 		customers: {
 			create: requester('customers.create'),
 			update: requester('customers.update'),
 			retrieve: requester('customers.retrieve'),
+			// deprecated, use customers.update instead
 			updateSubscription: requester('customers.updateSubscription'),
 		},
 		invoices: {

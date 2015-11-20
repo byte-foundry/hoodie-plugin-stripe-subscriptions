@@ -5,10 +5,6 @@ var utils = require('../../lib/utils');
 var Boom = require('boom');
 var _ = require('lodash');
 
-// TODO:
-// - etre sur que je transmet bien les rapports d'erreur de Taxamo et Stripe
-// - pouvoir mettre à jour l'adresse d'invoice
-
 // things that bit us with chrome logger:
 // - it adds properties to logged objects
 // - all external request need to have a timeout, or logs might never come
@@ -30,6 +26,18 @@ function handleCustomerRequest( hoodie, request ) {
 			.then(function(userName) {
 				return getUserDoc(
 					stripe, hoodie, userName, request, logger );
+			})
+			.then(function(userDoc) {
+				if ( !userDoc.stripe ) {
+					userDoc.stripe = {};
+				}
+
+				if ( !userDoc.stripe.customerId ) {
+					return stripeCustomerCreate(
+						stripe, hoodie, userDoc, request, logger);
+				}
+
+				return userDoc;
 			})
 	);
 
@@ -186,10 +194,6 @@ function getUserDoc( stripe, hoodie, userName, request, logger ) {
 				return reject( error );
 			}
 
-			if ( !userDoc.stripe ) {
-				userDoc.stripe = {};
-			}
-
 			logger.log( userDoc );
 			return resolve( userDoc );
 		});
@@ -200,11 +204,8 @@ function stripeRetrieveToken( stripe, hoodie, source, request, logger ) {
 	return new Promise(function(resolve, reject) {
 		stripe.tokens.retrieve( source, function( error, token ) {
 			if ( error ) {
-				return reject(
-					Boom[ error.type === 'StripeInvalidRequest' ?
-						'badRequest' :
-						'badImplementation'
-					]( error.message, error ));
+				return reject( error );
+
 			}
 
 			logger.log( token );
@@ -234,7 +235,7 @@ function taxamoTransactionCreate( stripe, hoodie, results, request, logger ) {
 			],
 			// the currency code of the placeholder transaction is irrelevant
 			'currency_code': 'USD',
-			'description': 'placeholder transaction',
+			'description': 'Subscription',
 			'status': 'C',
 			'force_country_code': token.card.country,
 			'customer_id': userDoc.id,
@@ -476,14 +477,11 @@ function stripeCustomerUpdate( stripe, hoodie, userDoc, request, logger ) {
 			return reject( Boom.forbidden(
 				'Cannot update customer: Customer doesn\'t exist.') );
 		}
-		if ( !requestData.source ) {
-			return reject( Boom.forbidden(
-				'Cannot update customer: no source provided.') );
-		}
 
 		var whitelist = [
 				'source',
 				'coupon',
+				'shipping',
 			];
 		// mix following object with whitelisted properties from requestData
 		var params = _.assign({
@@ -494,7 +492,8 @@ function stripeCustomerUpdate( stripe, hoodie, userDoc, request, logger ) {
 			},
 			_.pick(requestData, function( value, key ) {
 				return _.includes( whitelist, key );
-			}));
+			})
+		);
 
 		stripe.customers.update( customer.customerId, params,
 			function( error, body ) {
@@ -528,7 +527,6 @@ function stripeUpdateSubscription( stripe, hoodie, userDoc, request, logger ) {
 
 		var whitelist = [
 				'plan',
-				'coupon',
 			];
 		// mix following object with whitelisted properties from requestData
 		var params = _.assign({},
@@ -589,17 +587,7 @@ function stripeUpdateSubscription( stripe, hoodie, userDoc, request, logger ) {
 
 function updateAccount( stripe, hoodie, userDoc, request, logger ) {
 	return new Promise(function(resolve, reject) {
-		// update or add the plan to the roles object
-		var updated;
-		userDoc.roles.forEach(function( role, i ) {
-			if ( role.indexOf('stripe:plan:') === 0 ) {
-				updated = true;
-				userDoc.roles[i] = 'stripe:plan:' + userDoc.stripe.plan;
-			}
-		});
-		if ( !updated ) {
-			userDoc.roles.push( 'stripe:plan:' + userDoc.stripe.plan );
-		}
+		utils.planToRole( userDoc );
 
 		hoodie.account.update('user', userDoc.id, userDoc, function(error) {
 			if ( error ) {
