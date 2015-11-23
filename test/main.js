@@ -157,12 +157,34 @@ describe('customerRequest', function() {
 			}
 		);
 
+		it('can update the billing address of the customer', function(done) {
+			this.timeout(4000);
+
+			hoodie.stripe.customers.update({
+					'buyer_name': 'Toto',
+					'invoice_address': {
+						'building_number': '052',
+						'street_name': 'Au fond à droite',
+						'city': 'Lyon',
+						'postal_code': 'ABC123',
+						'country': 'FR',
+					},
+				})
+				.then(function(body) {
+					expect(body).to.be.an('object');
+					done();
+				})
+				.catch(function( error ) {
+					done(error);
+				});
+		});
+
 		it('can update a customer and subscribe to another paid plan',
 			function(done) {
 				this.timeout(5000);
 
 				hoodie.stripe.customers.update({
-						plan: 'hoodie_test2_USD_taxfree',
+						invoice: 'hoodie_test2_USD_taxfree',
 					})
 					.then(function(body) {
 						expect(body.plan).to.equal('hoodie_test2_USD_taxfree');

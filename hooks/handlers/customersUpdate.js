@@ -59,10 +59,10 @@ module.exports = function customersUpdateHandler( context ) {
 				.then(_.partial(utils.hoodie.fetchSession, context ))
 				.then(_.partial(utils.hoodie.accountFind, context )),
 			Promise.resolve()
-				.then(_.partial(utils.stripe.tokensRetrieveOrNot, context))
-				.then(_.partial(utils.taxamo.transactionCreateOrUpdateOrNot,
-					context)),
+				.then(_.partial(utils.stripe.tokensRetrieveOrNot, context)),
 		])
+		// we need to wait for account.find to choose between create/update
+		.then(_.partial(utils.taxamo.transactionCreateOrUpdateOrNot, context))
 		.then(_.partial(utils.stripe.customersCreateOrUpdateOrNot, context))
 		.then(_.partial(utils.stripe.customersCreateOrUpdateOrNotSubscription,
 			context))
