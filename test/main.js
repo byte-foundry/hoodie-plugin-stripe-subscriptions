@@ -184,7 +184,7 @@ describe('customerRequest', function() {
 				this.timeout(5000);
 
 				hoodie.stripe.customers.update({
-						invoice: 'hoodie_test2_USD_taxfree',
+						plan: 'hoodie_test2_USD_taxfree',
 					})
 					.then(function(body) {
 						expect(body.plan).to.equal('hoodie_test2_USD_taxfree');
