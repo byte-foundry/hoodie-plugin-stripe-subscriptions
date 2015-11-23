@@ -149,6 +149,8 @@ describe('customerRequest', function() {
 				})
 				.then(function(body) {
 					expect(body.plan).to.equal('hoodie_test1_USD_taxfree');
+					expect(body.metadata['taxamo_transaction_key'])
+						.to.be.a('string');
 					done();
 				})
 				.catch(function( error ) {
@@ -314,6 +316,8 @@ describe('customerRequest', function() {
 					})
 					.then(function(body) {
 						expect(body.plan).to.equal('hoodie_test2_USD_taxfree');
+						expect(body.metadata['taxamo_transaction_key'])
+							.to.be.a('string');
 						done();
 					})
 					.catch(function( error ) {
