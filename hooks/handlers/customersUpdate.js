@@ -63,6 +63,7 @@ module.exports = function customersUpdateHandler( context ) {
 		])
 		// we need to wait for account.find to choose between create/update
 		.then(_.partial(utils.taxamo.transactionCreateOrUpdateOrNot, context))
+		.then(_.partial(utils.checkCurrency, context))
 		.then(_.partial(utils.stripe.customersCreateOrUpdateOrNot, context))
 		.then(_.partial(utils.stripe.customersCreateOrUpdateOrNotSubscription,
 			context))
