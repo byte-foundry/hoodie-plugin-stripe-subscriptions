@@ -5,11 +5,11 @@ module.exports = function handleWebhooksRequest( hoodie, request, reply ) {
 	var usersDb = hoodie.database('_users');
 
 	// For now we will ignore all events except subscriptions
-	if ( !event.object || event.object.object !== 'subscription' ) {
-		return;
+	if ( !event.type || !/^customer.subscription/.test( event.type ) ) {
+		return reply( null, 'event ignored' );
 	}
 
-	var customerId = event.object.customer;
+	var customerId = event.data.object.customer;
 	var queryArgs = {
 		'include_docs': true,
 		startkey: customerId,
@@ -28,6 +28,14 @@ module.exports = function handleWebhooksRequest( hoodie, request, reply ) {
 				return reply(new Error(error));
 			}
 
+			if ( event.type === 'customer.subscription.deleted' ) {
+				userDoc.stripe.plan = 'free_none';
+				delete userDoc.stripe.subscriptionId;
+			}
+			else {
+				userDoc.stripe.plan = event.data.object.plan.id;
+			}
+
 			utils.hoodie.planToRole( userDoc );
 
 			usersDb.update('user', docId, userDoc, function(error) {
@@ -35,7 +43,7 @@ module.exports = function handleWebhooksRequest( hoodie, request, reply ) {
 					return reply(new Error(error));
 				}
 
-				reply('success');
+				reply( null, 'success' );
 			});
 		});
 	});
