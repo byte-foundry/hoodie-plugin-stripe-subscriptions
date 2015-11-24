@@ -38,7 +38,6 @@ $(function() {
 		$('[name=universalPricing]').prop('checked', doc.config.universalPricing)
 			.iCheck('update');
 
-		$('[name=sessionUri]').val(doc.config.sessionUri);
 		$('[name=stripeDebug]').prop('checked', doc.config.stripeDebug)
 			.iCheck('update');
 	});
@@ -116,7 +115,6 @@ $(function() {
 		ev.preventDefault();
 		setSubmitButtonToSaving(this);
 		var cfg = {
-			sessionUri: $.trim( $('[name=sessionUri]').val() ),
 			stripeDebug: $('[name=stripeDebug]').prop('checked'),
 		};
 		updateConfig(cfg, function(err) {
