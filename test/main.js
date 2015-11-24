@@ -279,7 +279,7 @@ describe('customerRequest', function() {
 
 				hoodie.stripe.customers.create({})
 				.then(function(body) {
-					expect(body.plan).to.equal('');
+					expect(body.plan).to.equal('free_none');
 					done();
 				})
 				.catch(function( error ) {
