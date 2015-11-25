@@ -83,6 +83,19 @@ describe('customerRequest', function() {
 			});
 	});
 
+	it('should reply false when looking for random username', function(done) {
+		hoodie.stripe.usernames.exist({
+				username: 'u' + Math.round( Math.random() * 1E9 ),
+			})
+			.done(function( response ) {
+				expect(response).to.equal(false);
+				done();
+			})
+			.catch(function( error ) {
+				done(error);
+			});
+	});
+
 	describe('create and update stripe paid subscription', function() {
 		var token;
 
@@ -107,6 +120,19 @@ describe('customerRequest', function() {
 				token = _token;
 				done();
 			});
+		});
+
+		it('should reply true when looking fo actual username', function(done) {
+			hoodie.stripe.usernames.exist({
+					username: hoodie.account.username,
+				})
+				.done(function( response ) {
+					expect(response).to.equal(true);
+					done();
+				})
+				.catch(function( error ) {
+					done(error);
+				});
 		});
 
 		it('should relay a meaningful Stripe error', function(done) {

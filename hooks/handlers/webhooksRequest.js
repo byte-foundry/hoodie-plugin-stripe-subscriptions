@@ -1,4 +1,4 @@
-var utils = ('../../lib/utils');
+var utils = require('../../lib/utils');
 
 module.exports = function handleWebhooksRequest( hoodie, request, reply ) {
 	var event = request.payload;
@@ -17,13 +17,13 @@ module.exports = function handleWebhooksRequest( hoodie, request, reply ) {
 	};
 
 	usersDb.query('stripe-by-id', queryArgs, function(error, rows) {
-		if (error) {
+		if ( error ) {
 			return reply(new Error(error));
 		}
 
-		var docId = rows._id;
+		var username = rows[0].id.split('/')[1];
 
-		usersDb.find('user', docId, function(error, userDoc) {
+		hoodie.account.find('user', username, function(error, userDoc) {
 			if (error) {
 				return reply(new Error(error));
 			}
@@ -38,7 +38,7 @@ module.exports = function handleWebhooksRequest( hoodie, request, reply ) {
 
 			utils.hoodie.planToRole( userDoc );
 
-			usersDb.update('user', docId, userDoc, function(error) {
+			hoodie.account.update('user', username, userDoc, function(error) {
 				if (error) {
 					return reply(new Error(error));
 				}

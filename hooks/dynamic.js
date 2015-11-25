@@ -28,6 +28,7 @@ var customersRetrieveHandler = require('./handlers/customersRetrieve');
 var customersUpdateHandler = require('./handlers/customersUpdate');
 var invoicesRetrieveUpcomingHandler =
 	require('./handlers/invoicesRetrieveUpcoming');
+var usernamesExistHandler = require('./handlers/usernamesExist');
 
 var chrome;
 
@@ -37,6 +38,7 @@ var handlers = {
 	'customers.create': customersUpdateHandler,
 	'customers.update': customersUpdateHandler,
 	'customers.updateSubscription': customersUpdateHandler,
+	'usernames.exist': usernamesExistHandler,
 };
 
 module.exports = function( hoodie ) {
