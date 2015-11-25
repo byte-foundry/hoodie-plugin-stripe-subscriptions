@@ -62,38 +62,40 @@ function randomSignUpIn() {
 }
 
 describe('customerRequest', function() {
-	it('should reply an error when no Stripe key is configured', function() {
-		var reply;
-		customerRequest({
-				config: { get: function() {} },
-			}, {
-				raw: { res: {} },
-			}, function(r) {
-				reply = r;
-			});
+	describe('fails appropriately', function() {
+		it('should reply an error if no Stripe key is configured', function() {
+			var reply;
+			customerRequest({
+					config: { get: function() {} },
+				}, {
+					raw: { res: {} },
+				}, function(r) {
+					reply = r;
+				});
 
-		expect(reply).to.be.an.instanceOf(Error);
-	});
+			expect(reply).to.be.an.instanceOf(Error);
+		});
 
-	it('should reply an error when user isn\'t logged in', function(done) {
-		hoodie.stripe.customers.create()
-			.catch(function(error) {
-				expect(error.statusCode).to.equal(401);
-				done();
-			});
-	});
+		it('should reply an error when user isn\'t logged in', function(done) {
+			hoodie.stripe.customers.create()
+				.catch(function(error) {
+					expect(error.statusCode).to.equal(401);
+					done();
+				});
+		});
 
-	it('should reply false when looking for random username', function(done) {
-		hoodie.stripe.usernames.exist({
-				username: 'u' + Math.round( Math.random() * 1E9 ),
-			})
-			.done(function( response ) {
-				expect(response).to.equal(false);
-				done();
-			})
-			.catch(function( error ) {
-				done(error);
-			});
+		it('should reply false if looking for random username', function(done) {
+			hoodie.stripe.usernames.exist({
+					username: 'u' + Math.round( Math.random() * 1E9 ),
+				})
+				.done(function( response ) {
+					expect(response).to.equal(false);
+					done();
+				})
+				.catch(function( error ) {
+					done(error);
+				});
+		});
 	});
 
 	describe('create and update stripe paid subscription', function() {
