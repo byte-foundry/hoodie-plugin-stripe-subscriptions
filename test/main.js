@@ -62,6 +62,8 @@ function randomSignUpIn() {
 }
 
 describe('customerRequest', function() {
+	this.timeout(10000);
+
 	describe('fails appropriately', function() {
 		it('should reply an error if no Stripe key is configured', function() {
 			var reply;
@@ -150,8 +152,6 @@ describe('customerRequest', function() {
 		});
 
 		it('should relay a meaningful Taxamo error', function(done) {
-			this.timeout(2000);
-
 			hoodie.stripe.customers.create({
 					'plan': 'hoodie_test1_USD_taxfree',
 					'source': token.id,
@@ -166,8 +166,6 @@ describe('customerRequest', function() {
 
 		it('can create a customer and subscribe to a paid plan',
 			function(done) {
-				this.timeout(5000);
-
 				hoodie.stripe.customers.create({
 					'source': token.id,
 					'plan': 'hoodie_test1_USD_taxfree',
@@ -188,8 +186,6 @@ describe('customerRequest', function() {
 		);
 
 		it('can update the billing address of the customer', function(done) {
-			this.timeout(4000);
-
 			hoodie.stripe.customers.update({
 					'buyer_name': 'Toto',
 					'invoice_address': {
@@ -211,8 +207,6 @@ describe('customerRequest', function() {
 
 		it('can update a customer and subscribe to another paid plan',
 			function(done) {
-				this.timeout(5000);
-
 				hoodie.stripe.customers.update({
 						plan: 'hoodie_test2_USD_taxfree',
 					})
@@ -228,8 +222,6 @@ describe('customerRequest', function() {
 
 		it('stores information about the plan the user is subscribed to',
 			function(done) {
-				this.timeout(5000);
-
 				hoodie.request('get', '/_session')
 					.then(function(body) {
 						expect(body.userCtx.roles)
@@ -244,8 +236,6 @@ describe('customerRequest', function() {
 
 		it('can retrieve the Stripe user that was created',
 			function(done) {
-				this.timeout(5000);
-
 				hoodie.stripe.customers.retrieve({
 						includeCharges: true,
 					})
@@ -303,8 +293,6 @@ describe('customerRequest', function() {
 
 		it('can create a customer and subscribe to a free plan',
 			function(done) {
-				this.timeout(5000);
-
 				hoodie.stripe.customers.create({})
 				.then(function(body) {
 					expect(body.plan).to.equal('free_none');
@@ -317,8 +305,6 @@ describe('customerRequest', function() {
 		);
 
 		it('can retrieve an upcoming invoice', function(done) {
-			this.timeout(5000);
-
 			hoodie.stripe.invoices.retrieveUpcoming({
 					'subscription_plan': 'hoodie_test2_USD_taxfree',
 				})
@@ -333,8 +319,6 @@ describe('customerRequest', function() {
 
 		it('can update a customer and upgrade to a paid plan',
 			function(done) {
-				this.timeout(5000);
-
 				hoodie.stripe.customers.update({
 						source: token.id,
 						plan: 'hoodie_test2_USD_taxfree',
@@ -354,14 +338,41 @@ describe('customerRequest', function() {
 			}
 		);
 
+		it('can update the buyer_name of a customer',
+			function(done) {
+				hoodie.stripe.customers.update({
+						'buyer_name': 'toto',
+					})
+					.then(function(body) {
+						expect(body.plan).to.equal('hoodie_test2_USD_taxfree');
+						done();
+					})
+					.catch(function( error ) {
+						done(error);
+					});
+			}
+		);
+
 		it('stores information about the plan the user is subscribed to',
 			function(done) {
-				this.timeout(3000);
-
 				hoodie.request('get', '/_session')
 					.then(function(body) {
 						expect(body.userCtx.roles)
 							.include('stripe:plan:hoodie_test2_USD_taxfree');
+						done();
+					})
+					.catch(function( error ) {
+						done(error);
+					});
+			}
+		);
+
+		it('can cancel a subscription',
+			function(done) {
+				hoodie.stripe.customers.updateSubscription({
+					})
+					.then(function(body) {
+						expect(body.plan).to.equal('free_none');
 						done();
 					})
 					.catch(function( error ) {

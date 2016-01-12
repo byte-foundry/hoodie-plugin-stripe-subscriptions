@@ -5,7 +5,8 @@ function stripeAPI(hoodie) {
 			create: requester('customers.create'),
 			update: requester('customers.update'),
 			retrieve: requester('customers.retrieve'),
-			// deprecated, use customers.update instead
+			// updateSubscription is mostly an alias to update, but only this
+			// method can be used to cancel a subscription
 			updateSubscription: requester('customers.updateSubscription'),
 		},
 		invoices: {

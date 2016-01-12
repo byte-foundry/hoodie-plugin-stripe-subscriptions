@@ -7,9 +7,9 @@
 		"mocha": true
 	},
 	"plugins": [
-      "mocha"
-    ],
-    "rules": {
+		"mocha"
+	],
+	"rules": {
 		"quotes": [ 2, "single" ],
 		"no-unused-vars": 2,
 		"mocha/no-exclusive-tests": 2,
