@@ -87,9 +87,9 @@ describe('customerRequest', function() {
 		});
 
 		it('should reply false if looking for random username', function(done) {
-			hoodie.stripe.usernames.exist({
-					username: 'u' + Math.round( Math.random() * 1E9 ),
-				})
+			hoodie.stripe.usernames.exist(
+					'u' + Math.round( Math.random() * 1E9 )
+				)
 				.done(function( response ) {
 					expect(response).to.equal(false);
 					done();
@@ -127,9 +127,9 @@ describe('customerRequest', function() {
 		});
 
 		it('should reply true when looking fo actual username', function(done) {
-			hoodie.stripe.usernames.exist({
-					username: hoodie.account.username,
-				})
+			hoodie.stripe.usernames.exist(
+					hoodie.account.username
+				)
 				.done(function( response ) {
 					expect(response).to.equal(true);
 					done();
