@@ -74,6 +74,5 @@ module.exports = function customersUpdateHandler( context ) {
 				authorization: context.request.headers.authorization,
 			});
 			context.reply( null, context.customer );
-		})
-		.catch(_.partial(utils.replyError, context));
+		});
 };

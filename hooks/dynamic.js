@@ -22,6 +22,7 @@
 */
 var Stripe = require('stripe');
 var chromelogger = require('chromelogger');
+var _ = require('lodash');
 
 var webhooksRequestHandler = require('./handlers/webhooksRequest');
 var customersRetrieveHandler = require('./handlers/customersRetrieve');
@@ -29,6 +30,7 @@ var customersUpdateHandler = require('./handlers/customersUpdate');
 var invoicesRetrieveUpcomingHandler =
 	require('./handlers/invoicesRetrieveUpcoming');
 var usernamesExistHandler = require('./handlers/usernamesExist');
+var utils = require('../lib/utils');
 
 var chrome;
 
@@ -86,7 +88,8 @@ module.exports = function( hoodie ) {
 			}
 
 			if ( context.method ) {
-				handlers[ context.method ]( context );
+				handlers[ context.method ]( context )
+					.catch(_.partial(utils.replyError, hoodie, context));
 			}
 			else {
 				webhooksRequestHandler( hoodie, request, reply );

@@ -7,6 +7,5 @@ module.exports = function usernamesExistHandler( context ) {
 		.then(_.partial(utils.hoodie.usernameExist, context))
 		.then(function() {
 			context.reply( null, context.isExisting );
-		})
-		.catch(_.partial(utils.replyError, context));
+		});
 };

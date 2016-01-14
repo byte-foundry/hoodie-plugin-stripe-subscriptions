@@ -15,6 +15,5 @@ module.exports = function invoicesRetrieveUpcomingHandler( context ) {
 		})
 		.spread(function( userDoc, upcoming ) {
 			context.reply( null, upcoming );
-		})
-		.catch(_.partial(utils.replyError, context));
+		});
 };
