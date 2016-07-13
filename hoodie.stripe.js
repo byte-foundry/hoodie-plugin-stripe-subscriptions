@@ -9,6 +9,10 @@ function stripeAPI(hoodie) {
 			// method can be used to cancel a subscription
 			updateSubscription: requester('customers.updateSubscription'),
 		},
+		credits: {
+			buy: requester('credits.buy'),
+			spend: requester('credits.spend')
+		},
 		invoices: {
 			retrieveUpcoming: requester('invoices.retrieveUpcoming'),
 		},
