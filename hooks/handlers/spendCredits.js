@@ -8,7 +8,14 @@ module.exports = function spendCreditsHandler( context ) {
 				.then(_.partial(utils.hoodie.fetchSession, context ))
 				.then(_.partial(utils.hoodie.accountFind, context )),
 		])
-		.then(_.partial(utils.stripe.customersRetrieveOrNot, context))
+		.then(function() {
+			if ( context.userDoc.stripe && context.userDoc.stripe.customerId ) {
+				return utils.stripe.customersRetrieveOrNot( context );
+			}
+			else {
+				return utils.stripe.customersCreateOrNot( context );
+			}
+		})
 		.then(function() {
 			context.credits =
 				parseInt( (context.customer.metadata.credits || 0), 10)

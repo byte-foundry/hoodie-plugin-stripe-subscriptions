@@ -11,7 +11,14 @@ module.exports = function buyCreditsHandler( context ) {
 				.then(_.partial(utils.stripe.tokensRetrieveOrNot, context))
 				.then(_.partial(utils.checkCurrencyAlt, context))
 		])
-		.then(_.partial(utils.stripe.customersRetrieveOrNot, context))
+		.then(function() {
+			if ( context.userDoc.stripe && context.userDoc.stripe.customerId ) {
+				return utils.stripe.customersRetrieveOrNot( context );
+			}
+			else {
+				return utils.stripe.customersCreateOrNot( context );
+			}
+		})
 		.then(_.partial(utils.stripe.orderCreateOrNot, context))
 		.then(_.partial(utils.stripe.orderPayOrNot, context ))
 		.then(function(order) {
