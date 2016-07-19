@@ -385,4 +385,61 @@ describe('customerRequest', function() {
 			hoodie.account.signOut();
 		});
 	});
+
+	describe('buyCredits', function() {
+		var token;
+
+		before(function(done) {
+			randomSignUpIn()
+				.then(function() {
+					done();
+				})
+				.catch(function( error ) {
+					done(error);
+				});
+			});
+
+		before(function(done) {
+			stripeTokensCreate({
+				'number': '4242424242424242',
+				'exp_month': '12',
+				'exp_year': '2017',
+				'cvc': '272',
+				'name': 'ME MYSLEF AND I',
+			}, function(err, _token) {
+				token = _token;
+				done();
+			});
+		});
+
+		it('should be possible to buy credits', function(done) {
+			hoodie.stripe.credits.buy({
+					items: ['5_exports_USD']
+				})
+				.then(function(body) {
+					expect(body.credits).to.equal('5');
+					done();
+				})
+				.catch(function( error ) {
+					done(error);
+				});
+		});
+
+		it('should cumulate credits', function(done) {
+			hoodie.stripe.credits.buy({
+					items: ['5_exports_USD']
+				})
+				.then(function(body) {
+					expect(body.credits).to.equal('10');
+					done();
+				})
+				.catch(function( error ) {
+					done(error);
+				});
+		});
+
+		after(function() {
+			hoodie.account.signOut();
+		});
+	});
 });
