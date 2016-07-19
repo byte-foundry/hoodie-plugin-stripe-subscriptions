@@ -408,24 +408,15 @@ describe('customerRequest', function() {
 				'name': 'ME MYSLEF AND I',
 			}, function(err, _token) {
 				token = _token;
+				console.log('here', token.id);
 				done();
 			});
 		});
 
 		it('should be possible to buy credits', function(done) {
-			stripeTokensCreate({
-				'number': '4242424242424242',
-				'exp_month': '12',
-				'exp_year': '2017',
-				'cvc': '272',
-				'name': 'ME MYSLEF AND I',
-			}, function(err, _token) {
-				token = _token;
-				done();
-			});
-
+			console.log('there', token.id);
 			hoodie.stripe.credits.buy({
-					source: token.id,
+					token: token.id,
 					email: 'test@test.com',
 					currency_code: 'USD',
 					items: [{
@@ -443,8 +434,9 @@ describe('customerRequest', function() {
 		});
 
 		it('should cumulate credits', function(done) {
+			console.log('there', token.id);
 			hoodie.stripe.credits.buy({
-					source: token.id,
+					token: token.id,
 					email: 'test@test.com',
 					currency_code: 'USD',
 					items: [{
