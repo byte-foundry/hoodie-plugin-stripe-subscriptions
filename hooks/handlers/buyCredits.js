@@ -21,11 +21,11 @@ module.exports = function buyCreditsHandler( context ) {
 		})
 		.then(_.partial(utils.stripe.orderCreateOrNot, context))
 		.then(_.partial(utils.stripe.orderPayOrNot, context ))
-		.then(function(order) {
+		.then(function() {
 			// the number of credits to add is read from the first part of the
 			// sku's id
 			context.credits =
-				parseInt( order.items[0].parent, 10 ) +
+				parseInt( context.order.items[0].parent, 10 ) +
 				parseInt( (context.customer.metadata.credits || 0), 10);
 		})
 		.then(_.partial(utils.stripe.customersCreateOrUpdateOrNot, context))

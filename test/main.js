@@ -399,7 +399,7 @@ describe('customerRequest', function() {
 				});
 			});
 
-		before(function(done) {
+		beforeEach(function(done) {
 			stripeTokensCreate({
 				'number': '4242424242424242',
 				'exp_month': '12',
@@ -413,6 +413,17 @@ describe('customerRequest', function() {
 		});
 
 		it('should be possible to buy credits', function(done) {
+			stripeTokensCreate({
+				'number': '4242424242424242',
+				'exp_month': '12',
+				'exp_year': '2017',
+				'cvc': '272',
+				'name': 'ME MYSLEF AND I',
+			}, function(err, _token) {
+				token = _token;
+				done();
+			});
+
 			hoodie.stripe.credits.buy({
 					source: token.id,
 					email: 'test@test.com',
