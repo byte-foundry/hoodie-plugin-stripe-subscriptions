@@ -28,7 +28,7 @@ module.exports = function buyCreditsHandler( context ) {
 				parseInt( context.order.items[0].parent, 10 ) +
 				parseInt( (context.customer.metadata.credits || 0), 10);
 		})
-		.then(_.partial(utils.stripe.customersCreateOrUpdateOrNot, context))
+		.then(_.partial(utils.stripe.customerCreditsUpdateOrNot, context))
 		.then(function() {
 			_.assign( context.customer, {
 				credits: context.credits || 0,

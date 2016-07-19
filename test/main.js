@@ -425,7 +425,7 @@ describe('customerRequest', function() {
 					}]
 				})
 				.then(function(body) {
-					expect(body.credits).to.equal('5');
+					expect(body.credits).to.equal(5);
 					done();
 				})
 				.catch(function( error ) {
@@ -445,7 +445,7 @@ describe('customerRequest', function() {
 					}]
 				})
 				.then(function(body) {
-					expect(body.credits).to.equal('10');
+					expect(body.credits).to.equal(10);
 					done();
 				})
 				.catch(function( error ) {
