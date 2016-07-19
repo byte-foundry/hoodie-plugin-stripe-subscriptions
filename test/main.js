@@ -414,7 +414,8 @@ describe('customerRequest', function() {
 
 		it('should be possible to buy credits', function(done) {
 			hoodie.stripe.credits.buy({
-					source:token.id,
+					source: token.id,
+					email: 'test@test.com',
 					currency_code: 'USD',
 					items: [{
 						type: 'sku',
@@ -433,6 +434,7 @@ describe('customerRequest', function() {
 		it('should cumulate credits', function(done) {
 			hoodie.stripe.credits.buy({
 					source: token.id,
+					email: 'test@test.com',
 					currency_code: 'USD',
 					items: [{
 						type: 'sku',
