@@ -414,7 +414,12 @@ describe('customerRequest', function() {
 
 		it('should be possible to buy credits', function(done) {
 			hoodie.stripe.credits.buy({
-					items: ['5_exports_USD']
+					source:token.id,
+					currency_code: 'USD',
+					items: [{
+						type: 'sku',
+						parent: '5_credits_USD'
+					}]
 				})
 				.then(function(body) {
 					expect(body.credits).to.equal('5');
@@ -427,7 +432,12 @@ describe('customerRequest', function() {
 
 		it('should cumulate credits', function(done) {
 			hoodie.stripe.credits.buy({
-					items: ['5_exports_USD']
+					source: token.id,
+					currency_code: 'USD',
+					items: [{
+						type: 'sku',
+						parent: '5_credits_USD'
+					}]
 				})
 				.then(function(body) {
 					expect(body.credits).to.equal('10');
