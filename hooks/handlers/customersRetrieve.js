@@ -12,7 +12,12 @@ module.exports = function customersUpdateHandler( context ) {
 					.then(_.partial(utils.stripe.chargesListOrNot, context));
 			}
 			else {
-				return utils.stripe.customersCreateOrNot( context );
+				return (
+					utils.stripe.customersCreateOrNot( context )
+						.then(function() {
+							return utils.hoodie.accountUpdateOrNot( context );
+						})
+				);
 			}
 		})
 		.then(_.partial(utils.hoodie.accountUpdateOrNot, context))
