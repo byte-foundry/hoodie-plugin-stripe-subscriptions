@@ -475,7 +475,9 @@ describe('customerRequest', function() {
 									parent: '5_credits_USD'
 								}]
 							})
-							.then(done);
+							.then(function() {
+								done();
+							});
 					});
 				})
 				.catch(function( error ) {
@@ -495,6 +497,17 @@ describe('customerRequest', function() {
 		});
 
 		it('should cummulate credits spending', function(done) {
+			hoodie.stripe.credits.spend(4)
+				.then(function(body) {
+					expect(body.credits).to.equal(-3);
+					done();
+				})
+				.catch(function( error ) {
+					done(error);
+				});
+		});
+
+		it('shouldn\'t cummulate credits spending below 0', function(done) {
 			hoodie.stripe.credits.spend(4)
 				.then(function(body) {
 					expect(body.credits).to.equal(-3);
