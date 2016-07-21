@@ -12,18 +12,14 @@ module.exports = function customersUpdateHandler( context ) {
 					.then(_.partial(utils.stripe.chargesListOrNot, context));
 			}
 			else {
-				return (
-					utils.stripe.customersCreateOrNot( context )
-						.then(function() {
-							return utils.hoodie.accountUpdateOrNot( context );
-						})
-				);
+				return utils.stripe.customersCreateOrNot( context )
+					.then(_.partial(utils.hoodie.accountUpdateOrNot, context));
 			}
 		})
-		.then(_.partial(utils.hoodie.accountUpdateOrNot, context))
 		.then(function() {
 			_.assign( context.customer, {
 				plan: context.userDoc.stripe.plan,
+				credits: parseInt( (context.customer.metadata.credits || 0), 10),
 				authorization: context.request.headers.authorization,
 			});
 			context.reply( null, context.customer );

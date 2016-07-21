@@ -20,7 +20,7 @@ module.exports = function spendCreditsHandler( context ) {
 		.then(function() {
 			context.credits =
 				parseInt( (context.customer.metadata.credits || 0), 10)
-				- parseInt( context.args[0]['credits_spent'], 10);
+				- parseInt( context.args[0], 10);
 		})
 		.then(_.partial(utils.stripe.customerCreditsUpdateOrNot, context))
 		.then(function() {

@@ -111,7 +111,7 @@ describe('customerRequest', function() {
 				.catch(function( error ) {
 					done(error);
 				});
-			});
+		});
 
 		before(function(done) {
 			stripeTokensCreate({
@@ -276,7 +276,7 @@ describe('customerRequest', function() {
 				.catch(function( error ) {
 					done(error);
 				});
-			});
+		});
 
 		before(function(done) {
 			stripeTokensCreate({
@@ -397,7 +397,7 @@ describe('customerRequest', function() {
 				.catch(function( error ) {
 					done(error);
 				});
-			});
+		});
 
 		beforeEach(function(done) {
 			stripeTokensCreate({
@@ -408,13 +408,11 @@ describe('customerRequest', function() {
 				'name': 'ME MYSLEF AND I',
 			}, function(err, _token) {
 				token = _token;
-				console.log('here', token.id);
 				done();
 			});
 		});
 
 		it('should be possible to buy credits', function(done) {
-			console.log('there', token.id);
 			hoodie.stripe.credits.buy({
 					token: token.id,
 					email: 'test@test.com',
@@ -434,7 +432,6 @@ describe('customerRequest', function() {
 		});
 
 		it('should cumulate credits', function(done) {
-			console.log('there', token.id);
 			hoodie.stripe.credits.buy({
 					token: token.id,
 					email: 'test@test.com',
@@ -455,6 +452,57 @@ describe('customerRequest', function() {
 
 		after(function() {
 			hoodie.account.signOut();
+		});
+	});
+
+	describe('spendCredits', function() {
+		before(function(done) {
+			randomSignUpIn()
+				.then(function() {
+					stripeTokensCreate({
+						'number': '4242424242424242',
+						'exp_month': '12',
+						'exp_year': '2017',
+						'cvc': '272',
+						'name': 'ME MYSLEF AND I',
+					}, function(err, _token) {
+						hoodie.stripe.credits.buy({
+								token: _token.id,
+								email: 'test@test.com',
+								currency_code: 'USD',
+								items: [{
+									type: 'sku',
+									parent: '5_credits_USD'
+								}]
+							})
+							.then(done);
+					});
+				})
+				.catch(function( error ) {
+					done(error);
+				});
+		});
+
+		it('should allow credits to be spent', function(done) {
+			hoodie.stripe.credits.spend(4)
+				.then(function(body) {
+					expect(body.credits).to.equal(1);
+					done();
+				})
+				.catch(function( error ) {
+					done(error);
+				});
+		});
+
+		it('should cummulate credits spending', function(done) {
+			hoodie.stripe.credits.spend(4)
+				.then(function(body) {
+					expect(body.credits).to.equal(-3);
+					done();
+				})
+				.catch(function( error ) {
+					done(error);
+				});
 		});
 	});
 });
