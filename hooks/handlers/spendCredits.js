@@ -13,12 +13,8 @@ module.exports = function spendCreditsHandler( context ) {
 				return utils.stripe.customersRetrieveOrNot( context );
 			}
 			else {
-				return (
-					utils.stripe.customersCreateOrNot( context )
-						.then(function() {
-							return utils.hoodie.accountUpdateOrNot( context );
-						})
-				);
+				return utils.stripe.customersCreateOrNot( context )
+					.then(_.partial(utils.hoodie.accountUpdateOrNot, context ));
 			}
 		})
 		.then(function() {
